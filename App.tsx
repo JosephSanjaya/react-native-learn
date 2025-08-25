@@ -10,7 +10,8 @@ import {
 import withObservables from '@nozbe/with-observables';
 import { database } from './src/db';
 import Post from './src/db/Post';
-import { configureBackgroundFetch } from './src/services/BackgroundSync';
+import { ServiceProvider } from './src/context/ServiceContext';
+import { useBackgroundSync } from './src/hooks/useBackgroundSync';
 import BackgroundFetch from 'react-native-background-fetch';
 
 const PostsList = ({ posts }: { posts: Post[] }) => (
@@ -34,11 +35,20 @@ const enhance = withObservables([], () => ({
 
 const EnhancedPostsList = enhance(PostsList);
 
-const App = () => {
+const AppContent = () => {
   const [logs, setLogs] = useState<string[]>([]);
+  const backgroundSyncService = useBackgroundSync();
 
   useEffect(() => {
-    configureBackgroundFetch();
+    const initializeBackgroundSync = async () => {
+      try {
+        await backgroundSyncService.configureBackgroundFetch();
+      } catch (error) {
+        console.error('Failed to configure background sync:', error);
+      }
+    };
+
+    initializeBackgroundSync();
 
     const logListener = (message: string) => {
       setLogs((prevLogs) => [...prevLogs, message]);
@@ -53,16 +63,11 @@ const App = () => {
     return () => {
       console.log = originalLog;
     };
-  }, []);
+  }, [backgroundSyncService]);
 
   const manualTrigger = () => {
     console.log('Manual trigger pressed');
-    BackgroundFetch.scheduleTask({
-      taskId: "com.transistorsoft.fetch",
-      delay: 5000, // 5 seconds
-      forceAlarmManager: true,
-      periodic: false,
-    });
+    backgroundSyncService.performSyncTask("manual");
   };
 
   return (
@@ -83,6 +88,14 @@ const App = () => {
         />
       </View>
     </SafeAreaView>
+  );
+};
+
+const App = () => {
+  return (
+    <ServiceProvider>
+      <AppContent />
+    </ServiceProvider>
   );
 };
 

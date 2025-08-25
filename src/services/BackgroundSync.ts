@@ -1,40 +1,44 @@
 import BackgroundFetch from 'react-native-background-fetch';
-import { database } from '../db';
+import { IPostRepository } from '../repositories/interfaces/IPostRepository';
+import { IBackgroundSyncService } from './interfaces/IBackgroundSyncService';
 
-const syncTask = async (taskId: string) => {
-  console.log('[BackgroundFetch] taskId', taskId);
+export class BackgroundSyncService implements IBackgroundSyncService {
+  constructor(private postRepository: IPostRepository) {}
 
-  // Simulate a sync process
-  const postsCollection = database.collections.get('posts');
-  await database.write(async () => {
-    await postsCollection.create(post => {
-      post.title = `New Post ${new Date().toISOString()}`;
-    });
-  });
+  async performSyncTask(taskId: string): Promise<void> {
+    console.log('[BackgroundFetch] taskId', taskId);
 
-  BackgroundFetch.finish(taskId);
-};
-
-export const configureBackgroundFetch = async () => {
-  const status = await BackgroundFetch.configure(
-    {
-      minimumFetchInterval: 15, // <-- minutes (15 is minimum)
-      taskId: "com.transistorsoft.fetch",
-      // Android options
-      stopOnTerminate: false,
-      startOnBoot: true,
-      requiredNetworkType: BackgroundFetch.NETWORK_TYPE_ANY, // Default
-      requiresCharging: false, // Default
-      requiresDeviceIdle: false, // Default
-      requiresBatteryNotLow: false, // Default
-      requiresStorageNotLow: false, // Default
-    },
-    syncTask,
-    (taskId) => {
-      console.log('[BackgroundFetch] TIMEOUT taskId', taskId);
+    try {
+      const newPostTitle = `New Post ${new Date().toISOString()}`;
+      await this.postRepository.createPost(newPostTitle);
+      console.log('[BackgroundFetch] Sync completed successfully');
+    } catch (error) {
+      console.error('[BackgroundFetch] Sync failed:', error);
+    } finally {
       BackgroundFetch.finish(taskId);
     }
-  );
+  }
 
-  console.log('[BackgroundFetch] configure status', status);
-};
+  async configureBackgroundFetch(): Promise<void> {
+    const status = await BackgroundFetch.configure(
+      {
+        minimumFetchInterval: 15,
+        taskId: "com.transistorsoft.fetch",
+        stopOnTerminate: false,
+        startOnBoot: true,
+        requiredNetworkType: BackgroundFetch.NETWORK_TYPE_ANY,
+        requiresCharging: false,
+        requiresDeviceIdle: false,
+        requiresBatteryNotLow: false,
+        requiresStorageNotLow: false,
+      },
+      this.performSyncTask.bind(this),
+      (taskId) => {
+        console.log('[BackgroundFetch] TIMEOUT taskId', taskId);
+        BackgroundFetch.finish(taskId);
+      }
+    );
+
+    console.log('[BackgroundFetch] configure status', status);
+  }
+}

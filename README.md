@@ -1,97 +1,132 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# WorkManager alternative dengan React Native
 
-# Getting Started
+Project ini memberikan penjelasan rinci tentang proyek yang telah kita bangun, dengan fokus pada cara mengimplementasikan tugas latar belakang di aplikasi React Native menggunakan `react-native-background-fetch` dan `WatermelonDB`.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## 1. Ikhtisar Proyek
 
-## Step 1: Start Metro
+Tujuan dari proyek ini adalah untuk menunjukkan cara melakukan sinkronisasi data latar belakang di aplikasi React Native. Kami telah membuat aplikasi sederhana yang menyimulasikan proses sinkronisasi batch, di mana data diambil dari basis data lokal dan ditampilkan di UI. Tugas latar belakang dijadwalkan untuk berjalan secara berkala, bahkan saat aplikasi berada di latar belakang atau dihentikan.
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+### Teknologi yang Digunakan
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+*   **React Native:** Kerangka kerja untuk membangun aplikasi asli menggunakan React.
+*   **`react-native-background-fetch`:** Pustaka untuk menjadwalkan tugas latar belakang di Android dan iOS.
+*   **`WatermelonDB`:** Kerangka kerja basis data reaktif berkinerja tinggi untuk React Native.
+*   **TypeScript:** Superset JavaScript yang diketik.
 
-```sh
-# Using npm
-npm start
+## 2. Struktur Proyek
 
-# OR using Yarn
-yarn start
+Struktur proyek adalah sebagai berikut:
+
+```
+.
+├── android
+├── ios
+├── src
+│   ├── db
+│   │   ├── index.ts
+│   │   ├── Post.ts
+│   │   └── schema.ts
+│   └── services
+│       └── BackgroundSync.ts
+├── App.tsx
+└── ...
 ```
 
-## Step 2: Build and run your app
+*   **`android` & `ios`:** Folder proyek asli untuk Android dan iOS.
+*   **`src`:** Berisi kode sumber aplikasi.
+    *   **`db`:** Berisi penyiapan WatermelonDB, termasuk skema, model, dan instance basis data.
+    *   **`services`:** Berisi layanan sinkronisasi latar belakang.
+*   **`App.tsx`:** Komponen aplikasi utama.
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+## 3. Basis Data Lokal dengan WatermelonDB
 
-### Android
+Kami menggunakan WatermelonDB untuk menyimpan data secara lokal. Ini adalah basis data reaktif, yang berarti UI akan diperbarui secara otomatis saat data berubah.
 
-```sh
-# Using npm
-npm run android
+### Skema
 
-# OR using Yarn
+Skema basis data didefinisikan dalam `src/db/schema.ts`. Kami memiliki satu tabel bernama `posts` dengan kolom berikut:
+
+*   `title`: Judul posting (string).
+*   `body`: Isi posting (string, opsional).
+*   `created_at`: Stempel waktu pembuatan (angka).
+*   `updated_at`: Stempel waktu pembaruan (angka).
+
+### Model
+
+Model `Post` didefinisikan dalam `src/db/Post.ts`. Ini mewakili satu posting di basis data dan menyediakan metode untuk mengakses dan memodifikasi data.
+
+### Instance Basis Data
+
+Instance basis data dibuat di `src/db/index.ts`. Ini menggunakan `SQLiteAdapter` untuk terhubung ke basis data SQLite di perangkat.
+
+## 4. Tugas Latar Belakang dengan `react-native-background-fetch`
+
+Kami menggunakan `react-native-background-fetch` untuk menjadwalkan dan menjalankan tugas latar belakang.
+
+### Konfigurasi
+
+Pustaka dikonfigurasi di `src/services/BackgroundSync.ts`. Fungsi `configure` mengambil parameter berikut:
+
+*   **`minimumFetchInterval`:** Interval minimum dalam menit di mana tugas latar belakang dapat dieksekusi. Nilai defaultnya adalah 15 menit.
+*   **`taskId`:** Pengidentifikasi unik untuk tugas tersebut.
+*   **`stopOnTerminate`:** (Hanya Android) Jika `true`, tugas latar belakang akan dihentikan saat aplikasi dihentikan. Nilai defaultnya adalah `false`.
+*   **`startOnBoot`:** (Hanya Android) Jika `true`, tugas latar belakang akan dimulai saat perangkat dinyalakan. Nilai defaultnya adalah `true`.
+*   **`requiredNetworkType`:** Jenis jaringan yang diperlukan agar tugas latar belakang dapat berjalan. Nilai yang mungkin adalah:
+    *   `BackgroundFetch.NETWORK_TYPE_NONE`: Tidak diperlukan koneksi jaringan.
+    *   `BackgroundFetch.NETWORK_TYPE_ANY`: Diperlukan koneksi jaringan apa pun.
+    *   `BackgroundFetch.NETWORK_TYPE_UNMETERED`: Diperlukan koneksi jaringan tanpa kuota.
+*   **`requiresCharging`:** Jika `true`, tugas latar belakang hanya akan berjalan saat perangkat sedang diisi daya. Nilai defaultnya adalah `false`.
+*   **`requiresDeviceIdle`:** (Hanya Android) Jika `true`, tugas latar belakang hanya akan berjalan saat perangkat dalam keadaan diam. Nilai defaultnya adalah `false`.
+*   **`requiresBatteryNotLow`:** Jika `true`, tugas latar belakang hanya akan berjalan saat baterai tidak lemah. Nilai defaultnya adalah `false`.
+*   **`requiresStorageNotLow`:** Jika `true`, tugas latar belakang hanya akan berjalan saat penyimpanan tidak rendah. Nilai defaultnya adalah `false`.
+
+### Menjadwalkan Tugas
+
+Kita dapat menjadwalkan tugas satu kali menggunakan fungsi `scheduleTask`. Ini berguna untuk memicu tugas secara manual, misalnya, saat pengguna menekan tombol.
+
+```typescript
+BackgroundFetch.scheduleTask({
+  taskId: "com.transistorsoft.fetch",
+  delay: 5000, // 5 detik
+  forceAlarmManager: true,
+  periodic: false,
+});
+```
+
+### Menangani Tugas
+
+Fungsi `syncTask` di `src/services/BackgroundSync.ts` bertanggung jawab untuk menangani tugas latar belakang. Fungsi ini dipanggil setiap kali peristiwa pengambilan latar belakang dipicu.
+
+Dalam kasus kami, fungsi `syncTask` membuat posting baru di basis data dengan stempel waktu saat ini.
+
+## 5. Komponen UI
+
+UI dibangun dengan komponen React Native standar.
+
+### Menampilkan Data
+
+Kami menggunakan komponen tingkat tinggi `@nozbe/with-observables` untuk menghubungkan komponen `PostsList` ke basis data WatermelonDB. Ini memungkinkan komponen untuk mengamati koleksi `posts` dan secara otomatis dirender ulang saat data berubah.
+
+### Pemicu Manual
+
+Tombol "Sinkronisasi Manual" di `App.tsx` memicu fungsi `manualTrigger`, yang menjadwalkan tugas latar belakang satu kali menggunakan `scheduleTask`.
+
+## 6. Menjalankan Proyek
+
+Untuk menjalankan proyek, Anda dapat menggunakan perintah berikut:
+
+**Untuk Android:**
+
+```
 yarn android
 ```
 
-### iOS
+**Untuk iOS:**
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
 ```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
 yarn ios
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+## 7. Kesimpulan
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+Proyek ini memberikan dasar yang kuat untuk membangun aplikasi React Native dengan sinkronisasi data latar belakang. Dengan menggunakan `react-native-background-fetch` dan `WatermelonDB`, kita dapat menciptakan pengalaman pengguna yang mulus di mana data selalu terbaru, bahkan saat aplikasi tidak berjalan.

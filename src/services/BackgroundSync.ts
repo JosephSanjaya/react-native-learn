@@ -19,6 +19,7 @@ export const configureBackgroundFetch = async () => {
   const status = await BackgroundFetch.configure(
     {
       minimumFetchInterval: 15, // <-- minutes (15 is minimum)
+      taskId: "com.transistorsoft.fetch",
       // Android options
       stopOnTerminate: false,
       startOnBoot: true,

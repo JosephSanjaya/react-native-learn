@@ -56,8 +56,9 @@ const App = () => {
   }, []);
 
   const manualTrigger = () => {
+    console.log('Manual trigger pressed');
     BackgroundFetch.scheduleTask({
-      taskId: 'react-native-background-fetch',
+      taskId: "com.transistorsoft.fetch",
       delay: 5000, // 5 seconds
       forceAlarmManager: true,
       periodic: false,

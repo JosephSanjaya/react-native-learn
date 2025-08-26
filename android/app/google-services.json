@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "299154353726",
+    "project_id": "react-native-learn-ffacf",
+    "storage_bucket": "react-native-learn-ffacf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:299154353726:android:cc43d984df0c996049ab6f",
+        "android_client_info": {
+          "package_name": "com.workmanagersample"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBT9QFDtxlrZHs7rcTP-L3nfjsEwt4Rhno"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

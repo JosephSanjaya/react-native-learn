@@ -372,11 +372,149 @@ const AppContent = () => {
 - Token refresh management
 - Background message processing
 
-## 5. Arsitektur Clean Code dengan Service Orchestration
+## 5. Arsitektur MVI (Model-View-Intent) dengan Clean Code
 
-Proyek ini telah direfactor menggunakan prinsip-prinsip clean architecture, dependency injection, dan service orchestration untuk meningkatkan maintainability, testability, dan scalability. Aplikasi sekarang menggunakan specialized service classes untuk mengelola initialization, message handling, dan notification management.
+Proyek ini telah direfactor menggunakan pola MVI (Model-View-Intent) dengan clean architecture, dependency injection, dan service orchestration untuk meningkatkan maintainability, testability, dan scalability. Aplikasi sekarang menggunakan ViewModel class untuk mengelola state management dan business logic, serta specialized service classes untuk mengelola initialization, message handling, dan notification management.
 
-### 5.1. Service Orchestration dengan Specialized Classes
+### 5.1. MVI Pattern Implementation
+
+Aplikasi menggunakan pola MVI (Model-View-Intent) dengan ViewModel class yang mengelola state dan business logic:
+
+#### AppViewModel Class (`AppViewModel.ts`)
+
+ViewModel class yang co-located dengan App.tsx untuk visibility yang lebih baik:
+
+```typescript
+export class AppViewModel {
+  private services: any;
+  private backgroundSyncService: any;
+  private appInitialization: any;
+  private consoleLogger: any;
+  private dispatch: (action: AppAction) => void;
+
+  constructor(
+    services: any,
+    backgroundSyncService: any,
+    appInitialization: any,
+    consoleLogger: any,
+    dispatch: (action: AppAction) => void
+  ) {
+    this.services = services;
+    this.backgroundSyncService = backgroundSyncService;
+    this.appInitialization = appInitialization;
+    this.consoleLogger = consoleLogger;
+    this.dispatch = dispatch;
+  }
+
+  getInitialState(): AppState {
+    return {
+      isInitialized: false,
+      initializationError: null,
+      fcmToken: null,
+      permissionStatus: null,
+      permissionStatusColor: '#9E9E9E',
+      receivedMessages: [],
+      logs: [],
+      isRequestingPermission: false,
+      isSendingTestNotification: false,
+      isPerformingSync: false,
+      error: null,
+    };
+  }
+
+  reducer(state: AppState, action: AppAction): AppState {
+    switch (action.type) {
+      case 'INITIALIZATION_START':
+        return { 
+          ...state, 
+          isInitialized: false, 
+          initializationError: null,
+          error: null 
+        };
+      // ... other action handlers
+    }
+  }
+
+  async performManualSync(): Promise<void> {
+    this.dispatch({ type: 'PERFORM_SYNC_START' });
+    try {
+      console.log('Manual trigger pressed');
+      await this.backgroundSyncService.performSyncTask('manual');
+      this.dispatch({ type: 'PERFORM_SYNC_SUCCESS' });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Sync failed';
+      this.dispatch({ type: 'PERFORM_SYNC_ERROR', payload: errorMessage });
+    }
+  }
+}
+```
+
+#### useAppViewModel Hook (`src/hooks/useAppViewModel.ts`)
+
+React hook yang menggunakan ViewModel class dengan dependency injection internal:
+
+```typescript
+export function useAppViewModel() {
+  const services = useServices();
+  const backgroundSyncService = useBackgroundSync();
+  const appInitialization = useAppInitialization();
+  const consoleLogger = useConsoleLogger();
+
+  const viewModel = useMemo(() => {
+    return new AppViewModel(
+      services,
+      backgroundSyncService,
+      appInitialization,
+      consoleLogger,
+      (action) => dispatch(action)
+    );
+  }, [services, backgroundSyncService, appInitialization, consoleLogger]);
+
+  const [state, dispatch] = useReducer(
+    (currentState, action) => viewModel.reducer(currentState, action),
+    viewModel.getInitialState()
+  );
+
+  const computedState = useMemo(() => viewModel.computeState(state), [viewModel, state]);
+
+  return {
+    state: computedState,
+    actions: {
+      performManualSync: () => viewModel.performManualSync(),
+      requestNotificationPermission: () => viewModel.requestNotificationPermission(),
+      sendTestNotification: () => viewModel.sendTestNotification(),
+      showFCMToken: () => viewModel.showFCMToken(),
+      clearError: () => viewModel.clearError(),
+    },
+  };
+}
+```
+
+#### MVI Pattern Benefits
+
+**Model (State Management):**
+- Immutable state dengan TypeScript types
+- Centralized state management dengan reducer pattern
+- Clear state transitions dengan action-based updates
+
+**View (React Components):**
+- Clean separation antara UI dan business logic
+- View hanya consume state dan call actions
+- No direct state manipulation dalam components
+
+**Intent (User Actions):**
+- All user interactions melalui action methods
+- Async operations handled dalam ViewModel
+- Error handling dan loading states managed centrally
+
+**ViewModel Advantages:**
+- **Co-location**: ViewModel class berada di samping App.tsx untuk visibility
+- **Self-contained**: Dependency injection handled internally dalam hook
+- **Type Safety**: Strong typing untuk state dan actions
+- **Testability**: ViewModel class mudah untuk unit testing
+- **Maintainability**: Business logic terpusat dalam class methods
+
+### 5.2. Service Orchestration dengan Specialized Classes
 
 Kami menggunakan specialized service classes untuk mengelola kompleksitas aplikasi:
 
@@ -514,7 +652,7 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({ children }) =>
 - **Testability**: Mudah untuk mock individual services
 - **Maintainability**: Logic terpisah dan mudah dimodifikasi
 
-### 4.2. Repository Pattern
+### 5.3. Repository Pattern
 
 Repository pattern memisahkan logic akses data dari business logic:
 
@@ -550,7 +688,7 @@ export class PostRepository implements IPostRepository {
 - Dapat diganti implementasinya tanpa mengubah business logic
 - Separation of concerns yang jelas
 
-### 4.3. Service Layer Architecture
+### 5.4. Service Layer Architecture
 
 Service layer menangani business logic dan orchestration:
 
@@ -590,7 +728,7 @@ export class BackgroundSyncService implements IBackgroundSyncService {
 - Business logic terisolasi
 - Mudah untuk testing dan mocking
 
-### 5.4. Application Lifecycle Hooks
+### 5.5. Application Lifecycle Hooks
 
 Custom hooks untuk mengelola application lifecycle dan initialization:
 
@@ -703,7 +841,7 @@ export const usePostRepository = () => {
 - **Loading States**: Menyediakan loading dan error states untuk UI
 - **Message Handling**: Automatic setup untuk FCM message listeners
 
-### 4.5. Factory Pattern
+### 5.6. Factory Pattern
 
 Factory pattern untuk manual service creation jika diperlukan:
 
@@ -788,60 +926,29 @@ async performSyncTask(taskId: string): Promise<void> {
 - Logging yang lebih informatif
 - Separation of concerns yang jelas
 
-## 7. Komponen UI dengan Clean Architecture
+## 7. Komponen UI dengan MVI Pattern
 
-UI dibangun dengan fokus pada separation of concerns dan clean component architecture.
+UI dibangun dengan pola MVI yang fokus pada separation of concerns dan clean component architecture.
 
-### 7.1. Simplified App Component
+### 7.1. MVI App Component Implementation
 
-Aplikasi utama sekarang fokus hanya pada UI rendering dan user interactions:
+Aplikasi utama sekarang menggunakan ViewModel untuk state management:
 
 ```typescript
 const App = () => {
   return (
-    <ServiceProvider>
-      <AppContent />
-    </ServiceProvider>
+    <SafeAreaProvider>
+      <ServiceProvider>
+        <AppContent />
+      </ServiceProvider>
+    </SafeAreaProvider>
   );
 };
 
 const AppContent = () => {
-  const services = useServices();
-  const backgroundSyncService = useBackgroundSync();
-  const { logs } = useConsoleLogger();
-  
-  const {
-    isInitialized,
-    initializationError,
-    fcmToken,
-    permissionStatus,
-    receivedMessages,
-    setPermissionStatus
-  } = useAppInitialization();
+  const { state, actions } = useAppViewModel();
 
-  const manualTrigger = () => {
-    console.log('Manual trigger pressed');
-    backgroundSyncService.performSyncTask("manual");
-  };
-
-  const requestNotificationPermission = async () => {
-    try {
-      const status = await services.notificationManager.requestPermissionWithFeedback();
-      setPermissionStatus(status);
-    } catch (error) {
-      console.error('Permission request failed:', error);
-    }
-  };
-
-  const sendTestNotification = async () => {
-    try {
-      await services.notificationManager.sendTestNotification();
-    } catch (error) {
-      console.error('Test notification failed:', error);
-    }
-  };
-
-  if (!isInitialized && !initializationError) {
+  if (!state.isInitialized && !state.initializationError) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -851,17 +958,76 @@ const AppContent = () => {
     );
   }
 
-  if (initializationError) {
+  if (state.initializationError) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Initialization failed: {initializationError}</Text>
+          <Text style={styles.errorText}>Initialization failed: {state.initializationError}</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  // ... rest of UI rendering
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>WorkManagerSample</Text>
+        <Button 
+          title={state.isPerformingSync ? "Syncing..." : "Manual Sync"} 
+          onPress={actions.performManualSync}
+          disabled={state.isPerformingSync}
+        />
+      </View>
+
+      <View style={styles.fcmSection}>
+        <Text style={styles.sectionTitle}>FCM & Notifications</Text>
+
+        <View style={styles.statusRow}>
+          <Text style={styles.statusLabel}>Permission:</Text>
+          <View style={[styles.statusBadge, { backgroundColor: state.permissionStatusColor }]}>
+            <Text style={styles.statusText}>
+              {state.permissionStatus ? state.permissionStatus.toUpperCase() : 'UNKNOWN'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.buttonRow}>
+          <TouchableOpacity 
+            style={[styles.smallButton, state.isRequestingPermission && styles.disabledButton]} 
+            onPress={actions.requestNotificationPermission}
+            disabled={state.isRequestingPermission}
+          >
+            <Text style={styles.buttonText}>
+              {state.isRequestingPermission ? 'Requesting...' : 'Request Permission'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.smallButton, state.isSendingTestNotification && styles.disabledButton]} 
+            onPress={actions.sendTestNotification}
+            disabled={state.isSendingTestNotification}
+          >
+            <Text style={styles.buttonText}>
+              {state.isSendingTestNotification ? 'Sending...' : 'Test Notification'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.smallButton} onPress={actions.showFCMToken}>
+            <Text style={styles.buttonText}>Show Token</Text>
+          </TouchableOpacity>
+        </View>
+
+        {state.error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>{state.error}</Text>
+            <TouchableOpacity onPress={actions.clearError} style={styles.errorCloseButton}>
+              <Text style={styles.errorCloseText}>×</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* Posts and Logs sections */}
+    </SafeAreaView>
+  );
 };
 ```
 
@@ -946,24 +1112,32 @@ export class NotificationService implements INotificationService {
 }
 ```
 
-### 7.4. Keuntungan UI Architecture Baru
+### 7.4. Keuntungan MVI Architecture
 
-**Simplified Components:**
-- App.tsx fokus hanya pada UI rendering
-- Logic initialization dipindah ke specialized hooks
-- Error handling dan loading states yang proper
+**Clean Separation of Concerns:**
+- **Model**: AppState dengan immutable state management
+- **View**: React components yang hanya consume state dan call actions
+- **Intent**: User actions yang di-handle oleh ViewModel methods
+- **ViewModel**: Centralized business logic dan state management
 
-**Better User Experience:**
-- Loading states selama initialization
-- Error states dengan pesan yang informatif
-- Permission management dengan user feedback
-- Real-time FCM message display
+**Enhanced User Experience:**
+- Loading states untuk semua async operations (sync, permission, notification)
+- Error states dengan error banner yang dapat di-dismiss
+- Disabled states untuk buttons selama operations
+- Real-time FCM message display dengan proper state management
+
+**Developer Experience:**
+- **Type Safety**: Strong TypeScript typing untuk state dan actions
+- **Predictable State**: Immutable state updates melalui reducer pattern
+- **Easy Testing**: ViewModel class dapat di-unit test secara isolated
+- **Co-location**: ViewModel class berada di samping App component
+- **Self-contained**: Hook mengelola dependency injection secara internal
 
 **Maintainable Code:**
-- Single responsibility untuk setiap component
-- Reusable hooks untuk common functionality
-- Consistent error handling patterns
-- Clean separation antara UI dan business logic
+- Single responsibility: ViewModel untuk business logic, View untuk UI
+- Reusable patterns: Consistent action-based state updates
+- Error handling: Centralized error management dalam ViewModel
+- Loading management: Built-in loading states untuk semua operations
 
 ## 8. Testing dan Maintainability
 
@@ -983,39 +1157,44 @@ const mockPostRepository: IPostRepository = {
 const backgroundSyncService = new BackgroundSyncService(mockPostRepository);
 ```
 
-### 8.2. Keuntungan Arsitektur Service Orchestration
+### 8.2. Keuntungan MVI dengan Service Orchestration
 
 **Maintainability:**
-- Specialized service classes dengan single responsibility
-- Clear separation antara initialization, message handling, dan notification management
-- Interface contracts yang jelas untuk setiap service
-- Dependency injection memudahkan perubahan implementasi
+- **MVI Pattern**: Clear separation antara Model, View, dan Intent
+- **ViewModel Class**: Centralized business logic dengan method-based actions
+- **Service Orchestration**: Specialized service classes dengan single responsibility
+- **Interface Contracts**: Clear contracts untuk setiap service layer
+- **Dependency Injection**: Internal DI dalam ViewModel hook
 
 **Testability:**
-- Easy mocking dengan interface-based design
-- Isolated unit testing untuk setiap service orchestrator
-- Dependency injection memungkinkan test doubles
-- Specialized classes mudah untuk unit testing
+- **ViewModel Testing**: Class-based ViewModel mudah untuk unit testing
+- **Service Mocking**: Interface-based design memudahkan mocking
+- **Isolated Testing**: Setiap layer dapat di-test secara terpisah
+- **Action Testing**: Individual action methods dapat di-test independently
+- **State Testing**: Reducer logic dapat di-test dengan predictable inputs
 
 **Scalability:**
-- Service orchestrators dapat diperluas tanpa mengubah core services
-- Pattern yang konsisten untuk menambah service baru
-- Loose coupling antar service orchestrators
-- Modular architecture untuk feature expansion
+- **MVI Scalability**: Pattern yang proven untuk complex state management
+- **ViewModel Extension**: Easy untuk menambah actions dan state properties
+- **Service Extension**: Service orchestrators dapat diperluas tanpa breaking changes
+- **Modular Architecture**: Clear boundaries untuk feature expansion
+- **Type Safety**: Strong typing mencegah runtime errors saat scaling
 
 **Developer Experience:**
-- Application lifecycle hooks yang descriptive
-- Centralized initialization dengan proper error handling
-- IDE autocomplete yang lebih baik
-- Loading dan error states yang built-in
-- Consistent patterns untuk service access
+- **Co-located ViewModel**: ViewModel class visible di samping App component
+- **Self-contained Hook**: Dependency injection handled internally
+- **Type Safety**: Full TypeScript support dengan autocomplete
+- **Predictable State**: Immutable state updates dengan clear action flow
+- **Error Handling**: Built-in error states dan loading management
+- **Loading States**: Automatic loading indicators untuk async operations
 
 **Reliability:**
-- Proper initialization order dengan AppInitializer
-- Centralized error handling di setiap orchestrator
-- Firebase initialization validation
-- Permission management dengan user feedback
-- Automatic cleanup untuk message listeners
+- **Immutable State**: Prevents accidental state mutations
+- **Action-based Updates**: All state changes melalui well-defined actions
+- **Error Boundaries**: Proper error handling di setiap layer
+- **Loading Management**: Consistent loading states untuk better UX
+- **Firebase Integration**: Proper initialization dan configuration validation
+- **Permission Management**: Comprehensive permission handling dengan user feedback
 
 ## 9. Konfigurasi Firebase
 
@@ -1086,13 +1265,16 @@ yarn ios
 
 ## 11. Kesimpulan
 
-Proyek ini memberikan dasar yang kuat untuk membangun aplikasi React Native dengan sinkronisasi data latar belakang dan push notifications menggunakan clean architecture dan service orchestration. Dengan menggunakan `react-native-background-fetch`, `WatermelonDB`, `Firebase Cloud Messaging`, dan specialized service orchestrators, kita dapat menciptakan aplikasi yang:
+Proyek ini memberikan dasar yang kuat untuk membangun aplikasi React Native dengan sinkronisasi data latar belakang dan push notifications menggunakan **MVI (Model-View-Intent) pattern**, clean architecture, dan service orchestration. Dengan menggunakan `react-native-background-fetch`, `WatermelonDB`, `Firebase Cloud Messaging`, dan ViewModel class dengan specialized service orchestrators, kita dapat menciptakan aplikasi yang:
 
+- **MVI Architecture:** Clean separation dengan Model-View-Intent pattern
+- **ViewModel-Driven:** Centralized state management dengan class-based ViewModel
+- **Type-Safe:** Strong TypeScript typing untuk state, actions, dan services
 - **Maintainable:** Service orchestration dengan single responsibility principle
-- **Testable:** Specialized service classes yang mudah untuk unit testing
-- **Scalable:** Modular architecture dengan service orchestrators yang dapat diperluas
-- **Reliable:** Centralized initialization dan error handling yang robust
-- **Developer-Friendly:** Application lifecycle hooks dan loading states yang built-in
+- **Testable:** ViewModel class dan service classes yang mudah untuk unit testing
+- **Scalable:** Modular architecture dengan clear boundaries untuk expansion
+- **Reliable:** Immutable state management dengan predictable action flow
+- **Developer-Friendly:** Co-located ViewModel dan self-contained dependency injection
 - **Real-time Communication:** FCM integration dengan automatic message handling
 - **Offline-First:** Local storage dengan WatermelonDB dan AsyncStorage
 - **Permission Management:** Comprehensive permission handling dengan user feedback
@@ -1100,6 +1282,14 @@ Proyek ini memberikan dasar yang kuat untuk membangun aplikasi React Native deng
 - **Firebase Integration:** Proper Firebase initialization dan configuration validation
 
 ### Fitur Lengkap yang Tersedia:
+
+**MVI Pattern Implementation:**
+- **AppViewModel Class:** Co-located dengan App.tsx untuk business logic management
+- **useAppViewModel Hook:** React integration dengan internal dependency injection
+- **Immutable State:** Type-safe state management dengan reducer pattern
+- **Action-based Updates:** All state changes melalui well-defined actions
+- **Loading States:** Built-in loading management untuk async operations
+- **Error Handling:** Centralized error management dengan user-friendly error states
 
 **Service Orchestration:**
 - AppInitializer untuk centralized service initialization
@@ -1113,24 +1303,27 @@ Proyek ini memberikan dasar yang kuat untuk membangun aplikasi React Native deng
 - Automatic service cleanup dan listener management
 - Centralized error handling dengan user feedback
 
-**Enhanced Notification System:**
-- Permission validation sebelum sending notifications
-- Automatic permission request dengan user feedback
-- Enhanced notification properties untuk better visibility
-- Duplicate notification prevention
-- Test notification dengan comprehensive logging
+**Enhanced UI/UX:**
+- Loading indicators untuk semua async operations
+- Error banners yang dapat di-dismiss
+- Disabled states untuk buttons selama operations
+- Real-time permission status dengan color coding
+- FCM message display dengan proper state management
 
-**Firebase Integration:**
-- Proper Firebase module initialization di entry point
-- FCM token management dengan automatic refresh
-- Background message processing
-- Firebase configuration validation
+**Clean Architecture Benefits:**
+- **Repository Pattern:** Data access abstraction dengan interface contracts
+- **Service Layer:** Business logic separation dengan dependency injection
+- **ViewModel Pattern:** Centralized state management dengan testable class methods
+- **Interface-based Design:** Maximum testability dengan easy mocking
+- **Single Responsibility:** Each class dan service memiliki tanggung jawab yang jelas
 
-**Clean Architecture:**
-- Repository pattern untuk data access
-- Specialized service orchestrators untuk complex operations
-- Dependency injection dengan React Context
-- Interface-based design untuk maximum testability
-- Single responsibility principle di setiap service class
+**Developer Experience:**
+- **Co-location:** ViewModel class berada di samping App component untuk visibility
+- **Self-contained:** Hook mengelola dependency injection secara internal
+- **Type Safety:** Full TypeScript support dengan compile-time error checking
+- **Predictable Patterns:** Consistent patterns untuk state updates dan service access
+- **Easy Testing:** Class-based architecture memudahkan unit testing
 
-Arsitektur ini mengikuti prinsip SOLID dan clean code dengan service orchestration pattern, membuatnya ideal untuk proyek enterprise atau aplikasi yang akan berkembang dalam jangka panjang. Aplikasi memiliki initialization yang robust, error handling yang comprehensive, dan notification system yang reliable dengan user experience yang optimal.
+Arsitektur ini mengikuti prinsip **SOLID**, **clean code**, dan **MVI pattern** dengan service orchestration, membuatnya ideal untuk proyek enterprise atau aplikasi yang akan berkembang dalam jangka panjang. Aplikasi memiliki state management yang predictable, initialization yang robust, error handling yang comprehensive, dan notification system yang reliable dengan user experience yang optimal.
+
+**MVI Pattern** memberikan struktur yang jelas untuk complex state management, sementara **ViewModel class** menyediakan centralized business logic yang mudah untuk testing dan maintenance. Kombinasi ini menciptakan aplikasi yang scalable, maintainable, dan developer-friendly.

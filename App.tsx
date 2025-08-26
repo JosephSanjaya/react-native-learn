@@ -1,22 +1,18 @@
 import React from 'react';
 import {
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
   FlatList,
   Button,
-  Alert,
   TouchableOpacity,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import withObservables from '@nozbe/with-observables';
 import { database } from './src/db';
 import Post from './src/db/Post';
-import { ServiceProvider, useServices } from './src/context/ServiceContext';
-import { useBackgroundSync } from './src/hooks/useBackgroundSync';
-import { useAppInitialization } from './src/hooks/useAppInitialization';
-import { useConsoleLogger } from './src/hooks/useConsoleLogger';
-import { PermissionStatus } from './src/services/interfaces/IPermissionService';
+import { ServiceProvider } from './src/context/ServiceContext';
+import { useAppViewModel } from './src/hooks/useAppViewModel';
 
 const PostsList = ({ posts }: { posts: Post[] }) => (
   <FlatList
@@ -40,50 +36,9 @@ const enhance = withObservables([], () => ({
 const EnhancedPostsList = enhance(PostsList);
 
 const AppContent = () => {
-  const services = useServices();
-  const backgroundSyncService = useBackgroundSync();
-  const { logs } = useConsoleLogger();
-  
-  const {
-    isInitialized,
-    initializationError,
-    fcmToken,
-    permissionStatus,
-    receivedMessages,
-    setPermissionStatus
-  } = useAppInitialization();
+  const { state, actions } = useAppViewModel();
 
-  const manualTrigger = () => {
-    console.log('Manual trigger pressed');
-    backgroundSyncService.performSyncTask("manual");
-  };
-
-  const requestNotificationPermission = async () => {
-    try {
-      const status = await services.notificationManager.requestPermissionWithFeedback();
-      setPermissionStatus(status);
-    } catch (error) {
-      console.error('Permission request failed:', error);
-    }
-  };
-
-  const sendTestNotification = async () => {
-    try {
-      await services.notificationManager.sendTestNotification();
-    } catch (error) {
-      console.error('Test notification failed:', error);
-    }
-  };
-
-  const showFCMToken = () => {
-    if (fcmToken) {
-      Alert.alert('FCM Token', fcmToken);
-    } else {
-      Alert.alert('No Token', 'FCM token not available');
-    }
-  };
-
-  if (!isInitialized && !initializationError) {
+  if (!state.isInitialized && !state.initializationError) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -93,11 +48,11 @@ const AppContent = () => {
     );
   }
 
-  if (initializationError) {
+  if (state.initializationError) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Initialization failed: {initializationError}</Text>
+          <Text style={styles.errorText}>Initialization failed: {state.initializationError}</Text>
         </View>
       </SafeAreaView>
     );
@@ -107,7 +62,11 @@ const AppContent = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>WorkManagerSample</Text>
-        <Button title="Manual Sync" onPress={manualTrigger} />
+        <Button 
+          title={state.isPerformingSync ? "Syncing..." : "Manual Sync"} 
+          onPress={actions.performManualSync}
+          disabled={state.isPerformingSync}
+        />
       </View>
 
       <View style={styles.fcmSection}>
@@ -115,29 +74,41 @@ const AppContent = () => {
 
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>Permission:</Text>
-          <View style={[styles.statusBadge, { backgroundColor: services.notificationManager.getPermissionStatusColor(permissionStatus) }]}>
+          <View style={[styles.statusBadge, { backgroundColor: state.permissionStatusColor }]}>
             <Text style={styles.statusText}>
-              {permissionStatus ? permissionStatus.toUpperCase() : 'UNKNOWN'}
+              {state.permissionStatus ? state.permissionStatus.toUpperCase() : 'UNKNOWN'}
             </Text>
           </View>
         </View>
 
         <View style={styles.buttonRow}>
-          <TouchableOpacity style={styles.smallButton} onPress={requestNotificationPermission}>
-            <Text style={styles.buttonText}>Request Permission</Text>
+          <TouchableOpacity 
+            style={[styles.smallButton, state.isRequestingPermission && styles.disabledButton]} 
+            onPress={actions.requestNotificationPermission}
+            disabled={state.isRequestingPermission}
+          >
+            <Text style={styles.buttonText}>
+              {state.isRequestingPermission ? 'Requesting...' : 'Request Permission'}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.smallButton} onPress={sendTestNotification}>
-            <Text style={styles.buttonText}>Test Notification</Text>
+          <TouchableOpacity 
+            style={[styles.smallButton, state.isSendingTestNotification && styles.disabledButton]} 
+            onPress={actions.sendTestNotification}
+            disabled={state.isSendingTestNotification}
+          >
+            <Text style={styles.buttonText}>
+              {state.isSendingTestNotification ? 'Sending...' : 'Test Notification'}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.smallButton} onPress={showFCMToken}>
+          <TouchableOpacity style={styles.smallButton} onPress={actions.showFCMToken}>
             <Text style={styles.buttonText}>Show Token</Text>
           </TouchableOpacity>
         </View>
 
-        {receivedMessages.length > 0 && (
+        {state.receivedMessages.length > 0 && (
           <View style={styles.messagesContainer}>
             <Text style={styles.messagesTitle}>Recent FCM Messages:</Text>
-            {receivedMessages.map((message, index) => (
+            {state.receivedMessages.map((message, index) => (
               <View key={index} style={styles.messageItem}>
                 <Text style={styles.messageTitle}>
                   {message.notification?.title || 'No Title'}
@@ -147,6 +118,15 @@ const AppContent = () => {
                 </Text>
               </View>
             ))}
+          </View>
+        )}
+
+        {state.error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>{state.error}</Text>
+            <TouchableOpacity onPress={actions.clearError} style={styles.errorCloseButton}>
+              <Text style={styles.errorCloseText}>×</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -159,9 +139,9 @@ const AppContent = () => {
       <View style={styles.logsContainer}>
         <Text style={styles.logsTitle}>Logs</Text>
         <FlatList
-          data={logs}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item }) => <Text style={styles.logItem}>{item}</Text>}
+          data={state.logs}
+          keyExtractor={(logItem, index) => index.toString()}
+          renderItem={({ item: logItem }) => <Text style={styles.logItem}>{logItem}</Text>}
         />
       </View>
     </SafeAreaView>
@@ -170,9 +150,11 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <ServiceProvider>
-      <AppContent />
-    </ServiceProvider>
+    <SafeAreaProvider>
+      <ServiceProvider>
+        <AppContent />
+      </ServiceProvider>
+    </SafeAreaProvider>
   );
 };
 
@@ -318,6 +300,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#F44336',
     textAlign: 'center',
+  },
+  disabledButton: {
+    backgroundColor: '#9E9E9E',
+  },
+  errorBanner: {
+    backgroundColor: '#FFEBEE',
+    borderColor: '#F44336',
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 12,
+    marginTop: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  errorBannerText: {
+    color: '#F44336',
+    fontSize: 14,
+    flex: 1,
+  },
+  errorCloseButton: {
+    marginLeft: 8,
+    padding: 4,
+  },
+  errorCloseText: {
+    color: '#F44336',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 

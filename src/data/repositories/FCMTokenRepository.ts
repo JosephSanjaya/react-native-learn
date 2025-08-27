@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { IFCMTokenRepository } from './interfaces/IFCMTokenRepository';
+import { IFCMTokenRepository } from './interfaces/IFCMTokenRepository.ts';
 
 export class FCMTokenRepository implements IFCMTokenRepository {
   private readonly FCM_TOKEN_KEY = '@fcm_token';

@@ -1,5 +1,5 @@
 import { database } from '../db';
-import { IPostRepository } from './interfaces/IPostRepository';
+import { IPostRepository } from './interfaces/IPostRepository.ts';
 
 export class PostRepository implements IPostRepository {
   async createPost(title: string): Promise<void> {

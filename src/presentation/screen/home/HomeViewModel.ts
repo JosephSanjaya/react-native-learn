@@ -1,5 +1,5 @@
 import { Alert } from 'react-native';
-import { PermissionStatus } from './src/services/interfaces/IPermissionService';
+import { PermissionStatus } from '../../../services/interfaces/IPermissionService';
 
 export type FCMMessage = {
   notification?: {
@@ -8,7 +8,7 @@ export type FCMMessage = {
   };
 };
 
-export type AppState = {
+export type HomeState = {
   isInitialized: boolean;
   initializationError: string | null;
   fcmToken: string | null;
@@ -22,7 +22,7 @@ export type AppState = {
   error: string | null;
 };
 
-export type AppAction =
+export type HomeAction =
   | { type: 'INITIALIZATION_START' }
   | { type: 'INITIALIZATION_SUCCESS'; payload: { fcmToken: string | null; permissionStatus: PermissionStatus | null } }
   | { type: 'INITIALIZATION_ERROR'; payload: string }
@@ -40,19 +40,19 @@ export type AppAction =
   | { type: 'PERFORM_SYNC_ERROR'; payload: string }
   | { type: 'CLEAR_ERROR' };
 
-export class AppViewModel {
+export class HomeViewModel {
   private services: any;
   private backgroundSyncService: any;
   private appInitialization: any;
   private consoleLogger: any;
-  private dispatch: (action: AppAction) => void;
+  private dispatch: (action: HomeAction) => void;
 
   constructor(
     services: any,
     backgroundSyncService: any,
     appInitialization: any,
     consoleLogger: any,
-    dispatch: (action: AppAction) => void
+    dispatch: (action: HomeAction) => void
   ) {
     this.services = services;
     this.backgroundSyncService = backgroundSyncService;
@@ -61,7 +61,7 @@ export class AppViewModel {
     this.dispatch = dispatch;
   }
 
-  getInitialState(): AppState {
+  getInitialState(): HomeState {
     return {
       isInitialized: false,
       initializationError: null,
@@ -75,9 +75,8 @@ export class AppViewModel {
       isPerformingSync: false,
       error: null,
     };
-  }
-
-  reducer(state: AppState, action: AppAction): AppState {
+  }  reducer
+(state: HomeState, action: HomeAction): HomeState {
     switch (action.type) {
       case 'INITIALIZATION_START':
         return { 
@@ -176,7 +175,7 @@ export class AppViewModel {
     }
   }
 
-  computeState(state: AppState): AppState {
+  computeState(state: HomeState): HomeState {
     const currentPermissionStatus = state.permissionStatus || this.appInitialization.permissionStatus;
     
     return {

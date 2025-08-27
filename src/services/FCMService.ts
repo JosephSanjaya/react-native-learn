@@ -1,6 +1,6 @@
 import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import { IFCMService, FCMMessage } from './interfaces/IFCMService';
-import { IFCMTokenRepository } from '../repositories/interfaces/IFCMTokenRepository';
+import { IFCMTokenRepository } from '../data/repositories/interfaces/IFCMTokenRepository';
 
 export class FCMService implements IFCMService {
   private fcmTokenRepository: IFCMTokenRepository;

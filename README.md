@@ -20,34 +20,46 @@ Tujuan dari proyek ini adalah untuk menunjukkan cara melakukan sinkronisasi data
 
 ## 2. Struktur Proyek
 
-Struktur proyek telah direfactor menggunakan clean architecture dengan dependency injection dan service orchestration:
+Struktur proyek telah direfactor menggunakan feature-based architecture dengan clean architecture, dependency injection, dan service orchestration:
 
 ```
 .
 ├── android
 ├── ios
 ├── src
-│   ├── context
-│   │   └── ServiceContext.tsx
-│   ├── db
-│   │   ├── index.ts
-│   │   ├── Post.ts
-│   │   └── schema.ts
-│   ├── hooks
-│   │   ├── useBackgroundSync.ts
-│   │   ├── usePostRepository.ts
-│   │   ├── usePermission.ts
-│   │   ├── useNotification.ts
-│   │   ├── useFCM.ts
-│   │   ├── useFCMToken.ts
-│   │   ├── useAppInitialization.ts
-│   │   └── useConsoleLogger.ts
-│   ├── repositories
-│   │   ├── interfaces
-│   │   │   ├── IPostRepository.ts
-│   │   │   └── IFCMTokenRepository.ts
-│   │   ├── PostRepository.ts
-│   │   └── FCMTokenRepository.ts
+│   ├── data
+│   │   ├── db
+│   │   │   ├── index.ts
+│   │   │   ├── Post.ts
+│   │   │   └── schema.ts
+│   │   └── repositories
+│   │       ├── interfaces
+│   │       │   ├── IPostRepository.ts
+│   │       │   └── IFCMTokenRepository.ts
+│   │       ├── PostRepository.ts
+│   │       └── FCMTokenRepository.ts
+│   ├── di (Dependency Injection)
+│   │   ├── context
+│   │   │   └── ServiceContext.tsx
+│   │   └── hooks
+│   │       ├── useBackgroundSync.ts
+│   │       ├── usePostRepository.ts
+│   │       ├── usePermission.ts
+│   │       ├── useNotification.ts
+│   │       ├── useFCM.ts
+│   │       ├── useFCMToken.ts
+│   │       ├── useAppInitialization.ts
+│   │       ├── useConsoleLogger.ts
+│   │       └── useAppViewModel.ts (deprecated - redirects to HomeViewModel)
+│   ├── presentation
+│   │   ├── components
+│   │   └── screen
+│   │       ├── home
+│   │       │   ├── HomeScreen.tsx
+│   │       │   ├── HomeViewModel.ts
+│   │       │   └── useHomeViewModel.ts
+│   │       ├── bluetooth
+│   │       └── camera
 │   └── services
 │       ├── interfaces
 │       │   ├── IBackgroundSyncService.ts
@@ -63,20 +75,47 @@ Struktur proyek telah direfactor menggunakan clean architecture dengan dependenc
 │       ├── PermissionService.ts
 │       ├── NotificationService.ts
 │       └── FCMService.ts
-├── App.tsx
+├── App.tsx (minimal entry point)
 ├── index.js
 └── ...
 ```
 
+### Arsitektur Feature-Based
+
 *   **`android` & `ios`:** Folder proyek asli untuk Android dan iOS.
 *   **`src`:** Berisi kode sumber aplikasi dengan arsitektur yang terstruktur.
-    *   **`context`:** Berisi React Context untuk dependency injection dan service orchestration.
-    *   **`db`:** Berisi penyiapan WatermelonDB, termasuk skema, model, dan instance basis data.
-    *   **`hooks`:** Custom React hooks untuk mengakses services dan application lifecycle management.
-    *   **`repositories`:** Layer abstraksi untuk operasi database dan penyimpanan lokal dengan interface contracts.
-    *   **`services`:** Business logic layer dengan service orchestrators, initializers, dan specialized handlers.
-*   **`App.tsx`:** Komponen aplikasi utama yang fokus pada UI rendering dan user interactions.
-*   **`index.js`:** Entry point aplikasi dengan Firebase module initialization.
+    *   **`data`:** Layer data dengan database dan repositories
+        *   **`db`:** Penyiapan WatermelonDB, skema, model, dan instance basis data
+        *   **`repositories`:** Layer abstraksi untuk operasi database dan penyimpanan lokal
+    *   **`di` (Dependency Injection):** Dependency injection dan service access
+        *   **`context`:** React Context untuk dependency injection dan service orchestration
+        *   **`hooks`:** Custom React hooks untuk mengakses services dan application lifecycle
+    *   **`presentation`:** UI layer dengan feature-based organization
+        *   **`components`:** Reusable UI components
+        *   **`screen`:** Feature-based screens dengan own ViewModel dan hooks
+            *   **`home`:** Home screen dengan HomeViewModel dan useHomeViewModel
+            *   **`bluetooth`:** Bluetooth feature (ready for expansion)
+            *   **`camera`:** Camera feature (ready for expansion)
+    *   **`services`:** Business logic layer dengan service orchestrators dan specialized handlers
+*   **`App.tsx`:** Minimal entry point yang hanya mengatur providers dan routing ke HomeScreen
+*   **`index.js`:** Entry point aplikasi dengan Firebase module initialization
+
+### Keuntungan Feature-Based Architecture
+
+**Scalability:**
+- Setiap feature memiliki folder sendiri dengan ViewModel, hooks, dan components
+- Mudah menambah screen baru tanpa mengubah existing code
+- Clear separation antara features
+
+**Maintainability:**
+- Feature-specific logic terisolasi dalam folder masing-masing
+- Dependency injection terpusat di `di` folder
+- Data layer terpisah dari presentation layer
+
+**Navigation Ready:**
+- Struktur siap untuk React Navigation atau routing solution lainnya
+- Each screen self-contained dengan own state management
+- Easy untuk implement nested navigation per feature
 
 ## 3. Basis Data Lokal dengan WatermelonDB
 
@@ -84,7 +123,7 @@ Kami menggunakan WatermelonDB untuk menyimpan data secara lokal. Ini adalah basi
 
 ### Skema
 
-Skema basis data didefinisikan dalam `src/db/schema.ts`. Kami memiliki satu tabel bernama `posts` dengan kolom berikut:
+Skema basis data didefinisikan dalam `src/data/db/schema.ts`. Kami memiliki satu tabel bernama `posts` dengan kolom berikut:
 
 *   `title`: Judul posting (string).
 *   `body`: Isi posting (string, opsional).
@@ -93,11 +132,11 @@ Skema basis data didefinisikan dalam `src/db/schema.ts`. Kami memiliki satu tabe
 
 ### Model
 
-Model `Post` didefinisikan dalam `src/db/Post.ts`. Ini mewakili satu posting di basis data dan menyediakan metode untuk mengakses dan memodifikasi data.
+Model `Post` didefinisikan dalam `src/data/db/Post.ts`. Ini mewakili satu posting di basis data dan menyediakan metode untuk mengakses dan memodifikasi data.
 
 ### Instance Basis Data
 
-Instance basis data dibuat di `src/db/index.ts`. Ini menggunakan `SQLiteAdapter` untuk terhubung ke basis data SQLite di perangkat.
+Instance basis data dibuat di `src/data/db/index.ts`. Ini menggunakan `SQLiteAdapter` untuk terhubung ke basis data SQLite di perangkat.
 
 ## 4. Firebase Cloud Messaging (FCM) dan Notifikasi
 
@@ -118,7 +157,7 @@ export interface IFCMTokenRepository {
 }
 ```
 
-**Implementasi (`src/repositories/FCMTokenRepository.ts`):**
+**Implementasi (`src/data/repositories/FCMTokenRepository.ts`):**
 ```typescript
 export class FCMTokenRepository implements IFCMTokenRepository {
   private readonly FCM_TOKEN_KEY = '@fcm_token';
@@ -292,7 +331,7 @@ export const useFCMToken = () => {
 
 ### 4.5. Integrasi FCM dalam UI
 
-FCM terintegrasi langsung dalam `App.tsx` dengan UI yang bersih:
+FCM terintegrasi dalam `HomeScreen.tsx` melalui `useHomeViewModel` hook dengan UI yang bersih:
 
 ```typescript
 const AppContent = () => {
@@ -372,32 +411,32 @@ const AppContent = () => {
 - Token refresh management
 - Background message processing
 
-## 5. Arsitektur MVI (Model-View-Intent) dengan Clean Code
+## 5. Arsitektur MVI (Model-View-Intent) dengan Feature-Based Structure
 
-Proyek ini telah direfactor menggunakan pola MVI (Model-View-Intent) dengan clean architecture, dependency injection, dan service orchestration untuk meningkatkan maintainability, testability, dan scalability. Aplikasi sekarang menggunakan ViewModel class untuk mengelola state management dan business logic, serta specialized service classes untuk mengelola initialization, message handling, dan notification management.
+Proyek ini telah direfactor menggunakan pola MVI (Model-View-Intent) dengan feature-based architecture, clean code, dependency injection, dan service orchestration untuk meningkatkan maintainability, testability, dan scalability. Aplikasi sekarang menggunakan feature-specific ViewModel classes dan specialized service classes untuk mengelola initialization, message handling, dan notification management.
 
-### 5.1. MVI Pattern Implementation
+### 5.1. Feature-Based MVI Implementation
 
-Aplikasi menggunakan pola MVI (Model-View-Intent) dengan ViewModel class yang mengelola state dan business logic:
+Aplikasi menggunakan feature-based MVI pattern dengan setiap screen memiliki ViewModel sendiri:
 
-#### AppViewModel Class (`AppViewModel.ts`)
+#### HomeViewModel Class (`src/presentation/screen/home/HomeViewModel.ts`)
 
-ViewModel class yang co-located dengan App.tsx untuk visibility yang lebih baik:
+ViewModel class untuk Home screen yang mengelola state dan business logic:
 
 ```typescript
-export class AppViewModel {
+export class HomeViewModel {
   private services: any;
   private backgroundSyncService: any;
   private appInitialization: any;
   private consoleLogger: any;
-  private dispatch: (action: AppAction) => void;
+  private dispatch: (action: HomeAction) => void;
 
   constructor(
     services: any,
     backgroundSyncService: any,
     appInitialization: any,
     consoleLogger: any,
-    dispatch: (action: AppAction) => void
+    dispatch: (action: HomeAction) => void
   ) {
     this.services = services;
     this.backgroundSyncService = backgroundSyncService;
@@ -406,7 +445,7 @@ export class AppViewModel {
     this.dispatch = dispatch;
   }
 
-  getInitialState(): AppState {
+  getInitialState(): HomeState {
     return {
       isInitialized: false,
       initializationError: null,
@@ -422,7 +461,7 @@ export class AppViewModel {
     };
   }
 
-  reducer(state: AppState, action: AppAction): AppState {
+  reducer(state: HomeState, action: HomeAction): HomeState {
     switch (action.type) {
       case 'INITIALIZATION_START':
         return { 
@@ -449,19 +488,19 @@ export class AppViewModel {
 }
 ```
 
-#### useAppViewModel Hook (`src/hooks/useAppViewModel.ts`)
+#### useHomeViewModel Hook (`src/presentation/screen/home/useHomeViewModel.ts`)
 
-React hook yang menggunakan ViewModel class dengan dependency injection internal:
+React hook yang menggunakan HomeViewModel class dengan dependency injection internal:
 
 ```typescript
-export function useAppViewModel() {
+export function useHomeViewModel() {
   const services = useServices();
   const backgroundSyncService = useBackgroundSync();
   const appInitialization = useAppInitialization();
   const consoleLogger = useConsoleLogger();
 
   const viewModel = useMemo(() => {
-    return new AppViewModel(
+    return new HomeViewModel(
       services,
       backgroundSyncService,
       appInitialization,
@@ -490,6 +529,16 @@ export function useAppViewModel() {
 }
 ```
 
+#### Backward Compatibility Hook (`src/di/hooks/useAppViewModel.ts`)
+
+Untuk backward compatibility, useAppViewModel sekarang redirect ke useHomeViewModel:
+
+```typescript
+// @deprecated Use useHomeViewModel from src/presentation/screen/home/useHomeViewModel.ts instead
+// This file is kept for backward compatibility and will be removed in future versions
+export { useHomeViewModel as useAppViewModel } from '../../presentation/screen/home/useHomeViewModel';
+```
+
 #### MVI Pattern Benefits
 
 **Model (State Management):**
@@ -507,12 +556,14 @@ export function useAppViewModel() {
 - Async operations handled dalam ViewModel
 - Error handling dan loading states managed centrally
 
-**ViewModel Advantages:**
-- **Co-location**: ViewModel class berada di samping App.tsx untuk visibility
+**Feature-Based ViewModel Advantages:**
+- **Feature Isolation**: Setiap screen memiliki ViewModel sendiri yang terisolasi
+- **Scalable Architecture**: Mudah menambah screen baru dengan pattern yang sama
 - **Self-contained**: Dependency injection handled internally dalam hook
-- **Type Safety**: Strong typing untuk state dan actions
-- **Testability**: ViewModel class mudah untuk unit testing
-- **Maintainability**: Business logic terpusat dalam class methods
+- **Type Safety**: Strong typing untuk state dan actions per feature
+- **Testability**: ViewModel class mudah untuk unit testing secara isolated
+- **Maintainability**: Business logic terpusat per feature dalam class methods
+- **Navigation Ready**: Struktur siap untuk multi-screen navigation
 
 ### 5.2. Service Orchestration dengan Specialized Classes
 
@@ -609,7 +660,7 @@ export class NotificationManager {
 }
 ```
 
-#### ServiceContext dengan Service Orchestration (`src/context/ServiceContext.tsx`)
+#### ServiceContext dengan Service Orchestration (`src/di/context/ServiceContext.tsx`)
 
 ```typescript
 export const ServiceProvider: React.FC<ServiceProviderProps> = ({ children }) => {
@@ -656,7 +707,7 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({ children }) =>
 
 Repository pattern memisahkan logic akses data dari business logic:
 
-#### IPostRepository Interface (`src/repositories/interfaces/IPostRepository.ts`)
+#### IPostRepository Interface (`src/data/repositories/interfaces/IPostRepository.ts`)
 
 ```typescript
 export interface IPostRepository {
@@ -666,7 +717,7 @@ export interface IPostRepository {
 }
 ```
 
-#### PostRepository Implementation (`src/repositories/PostRepository.ts`)
+#### PostRepository Implementation (`src/data/repositories/PostRepository.ts`)
 
 ```typescript
 export class PostRepository implements IPostRepository {
@@ -732,7 +783,7 @@ export class BackgroundSyncService implements IBackgroundSyncService {
 
 Custom hooks untuk mengelola application lifecycle dan initialization:
 
-#### useAppInitialization Hook (`src/hooks/useAppInitialization.ts`)
+#### useAppInitialization Hook (`src/di/hooks/useAppInitialization.ts`)
 
 Hook yang mengelola initialization process dan application state:
 
@@ -792,7 +843,7 @@ export const useAppInitialization = () => {
 };
 ```
 
-#### useConsoleLogger Hook (`src/hooks/useConsoleLogger.ts`)
+#### useConsoleLogger Hook (`src/di/hooks/useConsoleLogger.ts`)
 
 Hook untuk menangkap dan menampilkan console logs dalam UI:
 
@@ -926,27 +977,33 @@ async performSyncTask(taskId: string): Promise<void> {
 - Logging yang lebih informatif
 - Separation of concerns yang jelas
 
-## 7. Komponen UI dengan MVI Pattern
+## 7. Komponen UI dengan Feature-Based MVI Pattern
 
-UI dibangun dengan pola MVI yang fokus pada separation of concerns dan clean component architecture.
+UI dibangun dengan feature-based MVI pattern yang fokus pada separation of concerns dan scalable component architecture.
 
-### 7.1. MVI App Component Implementation
+### 7.1. Feature-Based App Structure
 
-Aplikasi utama sekarang menggunakan ViewModel untuk state management:
+Aplikasi utama sekarang minimal dan hanya mengatur providers serta routing ke HomeScreen:
 
 ```typescript
 const App = () => {
   return (
     <SafeAreaProvider>
       <ServiceProvider>
-        <AppContent />
+        <HomeScreen />
       </ServiceProvider>
     </SafeAreaProvider>
   );
 };
+```
 
-const AppContent = () => {
-  const { state, actions } = useAppViewModel();
+### 7.2. HomeScreen Implementation
+
+HomeScreen menggunakan useHomeViewModel untuk state management:
+
+```typescript
+export const HomeScreen = () => {
+  const { state, actions } = useHomeViewModel();
 
   if (!state.isInitialized && !state.initializationError) {
     return (
@@ -1031,7 +1088,7 @@ const AppContent = () => {
 };
 ```
 
-### 7.2. Firebase Module Initialization
+### 7.3. Firebase Module Initialization
 
 Entry point aplikasi di `index.js` sekarang mengimport Firebase module untuk auto-initialization:
 
@@ -1044,7 +1101,7 @@ import { name as appName } from './app.json';
 AppRegistry.registerComponent(appName, () => App);
 ```
 
-### 7.3. Enhanced Notification Service
+### 7.4. Enhanced Notification Service
 
 NotificationService sekarang memiliki permission management yang lebih robust:
 
@@ -1112,13 +1169,14 @@ export class NotificationService implements INotificationService {
 }
 ```
 
-### 7.4. Keuntungan MVI Architecture
+### 7.5. Keuntungan Feature-Based MVI Architecture
 
 **Clean Separation of Concerns:**
-- **Model**: AppState dengan immutable state management
+- **Model**: HomeState dengan immutable state management per feature
 - **View**: React components yang hanya consume state dan call actions
-- **Intent**: User actions yang di-handle oleh ViewModel methods
-- **ViewModel**: Centralized business logic dan state management
+- **Intent**: User actions yang di-handle oleh feature-specific ViewModel methods
+- **ViewModel**: Feature-specific business logic dan state management
+- **Navigation**: App.tsx sebagai minimal entry point untuk routing
 
 **Enhanced User Experience:**
 - Loading states untuk semua async operations (sync, permission, notification)
@@ -1127,17 +1185,19 @@ export class NotificationService implements INotificationService {
 - Real-time FCM message display dengan proper state management
 
 **Developer Experience:**
-- **Type Safety**: Strong TypeScript typing untuk state dan actions
+- **Type Safety**: Strong TypeScript typing untuk state dan actions per feature
 - **Predictable State**: Immutable state updates melalui reducer pattern
-- **Easy Testing**: ViewModel class dapat di-unit test secara isolated
-- **Co-location**: ViewModel class berada di samping App component
+- **Easy Testing**: ViewModel class dapat di-unit test secara isolated per feature
+- **Feature Isolation**: Setiap screen memiliki folder sendiri dengan ViewModel dan hooks
 - **Self-contained**: Hook mengelola dependency injection secara internal
+- **Scalable Structure**: Mudah menambah screen baru dengan pattern yang sama
 
 **Maintainable Code:**
-- Single responsibility: ViewModel untuk business logic, View untuk UI
-- Reusable patterns: Consistent action-based state updates
-- Error handling: Centralized error management dalam ViewModel
-- Loading management: Built-in loading states untuk semua operations
+- **Single responsibility**: Feature-specific ViewModel untuk business logic, View untuk UI
+- **Reusable patterns**: Consistent action-based state updates across features
+- **Error handling**: Centralized error management dalam setiap ViewModel
+- **Loading management**: Built-in loading states untuk semua operations per feature
+- **Feature Expansion**: Easy untuk menambah bluetooth, camera, atau screen lainnya
 
 ## 8. Testing dan Maintainability
 
@@ -1157,36 +1217,40 @@ const mockPostRepository: IPostRepository = {
 const backgroundSyncService = new BackgroundSyncService(mockPostRepository);
 ```
 
-### 8.2. Keuntungan MVI dengan Service Orchestration
+### 8.2. Keuntungan Feature-Based MVI dengan Service Orchestration
 
 **Maintainability:**
-- **MVI Pattern**: Clear separation antara Model, View, dan Intent
-- **ViewModel Class**: Centralized business logic dengan method-based actions
+- **Feature-Based MVI**: Clear separation per feature dengan Model, View, dan Intent
+- **Feature-Specific ViewModel**: Business logic terisolasi per screen/feature
 - **Service Orchestration**: Specialized service classes dengan single responsibility
 - **Interface Contracts**: Clear contracts untuk setiap service layer
-- **Dependency Injection**: Internal DI dalam ViewModel hook
+- **Dependency Injection**: Internal DI dalam setiap ViewModel hook
+- **Scalable Structure**: Easy expansion dengan consistent patterns
 
 **Testability:**
-- **ViewModel Testing**: Class-based ViewModel mudah untuk unit testing
+- **Feature-Specific Testing**: Setiap ViewModel dapat di-test secara isolated per feature
 - **Service Mocking**: Interface-based design memudahkan mocking
-- **Isolated Testing**: Setiap layer dapat di-test secara terpisah
-- **Action Testing**: Individual action methods dapat di-test independently
-- **State Testing**: Reducer logic dapat di-test dengan predictable inputs
+- **Isolated Testing**: Setiap layer dan feature dapat di-test secara terpisah
+- **Action Testing**: Individual action methods dapat di-test independently per feature
+- **State Testing**: Reducer logic dapat di-test dengan predictable inputs per feature
 
 **Scalability:**
-- **MVI Scalability**: Pattern yang proven untuk complex state management
-- **ViewModel Extension**: Easy untuk menambah actions dan state properties
+- **Feature-Based Scalability**: Pattern yang proven untuk multi-screen applications
+- **Easy Feature Addition**: Tinggal tambah folder baru di `presentation/screen/`
+- **ViewModel Extension**: Easy untuk menambah actions dan state properties per feature
 - **Service Extension**: Service orchestrators dapat diperluas tanpa breaking changes
 - **Modular Architecture**: Clear boundaries untuk feature expansion
 - **Type Safety**: Strong typing mencegah runtime errors saat scaling
+- **Navigation Ready**: Struktur siap untuk React Navigation implementation
 
 **Developer Experience:**
-- **Co-located ViewModel**: ViewModel class visible di samping App component
-- **Self-contained Hook**: Dependency injection handled internally
-- **Type Safety**: Full TypeScript support dengan autocomplete
-- **Predictable State**: Immutable state updates dengan clear action flow
-- **Error Handling**: Built-in error states dan loading management
-- **Loading States**: Automatic loading indicators untuk async operations
+- **Feature Organization**: Setiap feature memiliki folder sendiri dengan ViewModel, hooks, dan components
+- **Self-contained Hook**: Dependency injection handled internally per feature
+- **Type Safety**: Full TypeScript support dengan autocomplete per feature
+- **Predictable State**: Immutable state updates dengan clear action flow per feature
+- **Error Handling**: Built-in error states dan loading management per feature
+- **Loading States**: Automatic loading indicators untuk async operations per feature
+- **Easy Navigation**: Minimal App.tsx memudahkan implementasi routing
 
 **Reliability:**
 - **Immutable State**: Prevents accidental state mutations
@@ -1265,16 +1329,17 @@ yarn ios
 
 ## 11. Kesimpulan
 
-Proyek ini memberikan dasar yang kuat untuk membangun aplikasi React Native dengan sinkronisasi data latar belakang dan push notifications menggunakan **MVI (Model-View-Intent) pattern**, clean architecture, dan service orchestration. Dengan menggunakan `react-native-background-fetch`, `WatermelonDB`, `Firebase Cloud Messaging`, dan ViewModel class dengan specialized service orchestrators, kita dapat menciptakan aplikasi yang:
+Proyek ini memberikan dasar yang kuat untuk membangun aplikasi React Native dengan sinkronisasi data latar belakang dan push notifications menggunakan **Feature-Based MVI (Model-View-Intent) pattern**, clean architecture, dan service orchestration. Dengan menggunakan `react-native-background-fetch`, `WatermelonDB`, `Firebase Cloud Messaging`, dan feature-specific ViewModel classes dengan specialized service orchestrators, kita dapat menciptakan aplikasi yang:
 
-- **MVI Architecture:** Clean separation dengan Model-View-Intent pattern
-- **ViewModel-Driven:** Centralized state management dengan class-based ViewModel
-- **Type-Safe:** Strong TypeScript typing untuk state, actions, dan services
+- **Feature-Based MVI Architecture:** Clean separation dengan Model-View-Intent pattern per feature
+- **Feature-Specific ViewModels:** Isolated state management dengan class-based ViewModel per screen
+- **Type-Safe:** Strong TypeScript typing untuk state, actions, dan services per feature
 - **Maintainable:** Service orchestration dengan single responsibility principle
-- **Testable:** ViewModel class dan service classes yang mudah untuk unit testing
-- **Scalable:** Modular architecture dengan clear boundaries untuk expansion
-- **Reliable:** Immutable state management dengan predictable action flow
-- **Developer-Friendly:** Co-located ViewModel dan self-contained dependency injection
+- **Testable:** Feature-specific ViewModel classes dan service classes yang mudah untuk unit testing
+- **Highly Scalable:** Feature-based architecture dengan clear boundaries untuk expansion
+- **Reliable:** Immutable state management dengan predictable action flow per feature
+- **Developer-Friendly:** Feature isolation dan self-contained dependency injection
+- **Navigation Ready:** Struktur siap untuk multi-screen navigation implementation
 - **Real-time Communication:** FCM integration dengan automatic message handling
 - **Offline-First:** Local storage dengan WatermelonDB dan AsyncStorage
 - **Permission Management:** Comprehensive permission handling dengan user feedback
@@ -1283,13 +1348,14 @@ Proyek ini memberikan dasar yang kuat untuk membangun aplikasi React Native deng
 
 ### Fitur Lengkap yang Tersedia:
 
-**MVI Pattern Implementation:**
-- **AppViewModel Class:** Co-located dengan App.tsx untuk business logic management
-- **useAppViewModel Hook:** React integration dengan internal dependency injection
-- **Immutable State:** Type-safe state management dengan reducer pattern
-- **Action-based Updates:** All state changes melalui well-defined actions
-- **Loading States:** Built-in loading management untuk async operations
-- **Error Handling:** Centralized error management dengan user-friendly error states
+**Feature-Based MVI Pattern Implementation:**
+- **HomeViewModel Class:** Feature-specific business logic management untuk Home screen
+- **useHomeViewModel Hook:** React integration dengan internal dependency injection
+- **Immutable State:** Type-safe state management dengan reducer pattern per feature
+- **Action-based Updates:** All state changes melalui well-defined actions per feature
+- **Loading States:** Built-in loading management untuk async operations per feature
+- **Error Handling:** Centralized error management dengan user-friendly error states per feature
+- **Backward Compatibility:** useAppViewModel redirect ke useHomeViewModel untuk smooth migration
 
 **Service Orchestration:**
 - AppInitializer untuk centralized service initialization
@@ -1304,26 +1370,44 @@ Proyek ini memberikan dasar yang kuat untuk membangun aplikasi React Native deng
 - Centralized error handling dengan user feedback
 
 **Enhanced UI/UX:**
-- Loading indicators untuk semua async operations
-- Error banners yang dapat di-dismiss
+- Loading indicators untuk semua async operations per feature
+- Error banners yang dapat di-dismiss per feature
 - Disabled states untuk buttons selama operations
 - Real-time permission status dengan color coding
 - FCM message display dengan proper state management
+- Feature-specific UI components yang terisolasi
 
 **Clean Architecture Benefits:**
 - **Repository Pattern:** Data access abstraction dengan interface contracts
 - **Service Layer:** Business logic separation dengan dependency injection
-- **ViewModel Pattern:** Centralized state management dengan testable class methods
+- **Feature-Based ViewModel Pattern:** Isolated state management dengan testable class methods per feature
 - **Interface-based Design:** Maximum testability dengan easy mocking
 - **Single Responsibility:** Each class dan service memiliki tanggung jawab yang jelas
+- **Feature Isolation:** Clear boundaries antara features untuk better maintainability
 
 **Developer Experience:**
-- **Co-location:** ViewModel class berada di samping App component untuk visibility
-- **Self-contained:** Hook mengelola dependency injection secara internal
-- **Type Safety:** Full TypeScript support dengan compile-time error checking
-- **Predictable Patterns:** Consistent patterns untuk state updates dan service access
-- **Easy Testing:** Class-based architecture memudahkan unit testing
+- **Feature Organization:** Setiap feature memiliki folder sendiri dengan ViewModel, hooks, dan components
+- **Self-contained:** Hook mengelola dependency injection secara internal per feature
+- **Type Safety:** Full TypeScript support dengan compile-time error checking per feature
+- **Predictable Patterns:** Consistent patterns untuk state updates dan service access across features
+- **Easy Testing:** Class-based architecture memudahkan unit testing per feature
+- **Easy Expansion:** Tinggal copy pattern dari HomeScreen untuk membuat screen baru
+- **Navigation Ready:** Minimal App.tsx memudahkan implementasi React Navigation
 
-Arsitektur ini mengikuti prinsip **SOLID**, **clean code**, dan **MVI pattern** dengan service orchestration, membuatnya ideal untuk proyek enterprise atau aplikasi yang akan berkembang dalam jangka panjang. Aplikasi memiliki state management yang predictable, initialization yang robust, error handling yang comprehensive, dan notification system yang reliable dengan user experience yang optimal.
+Arsitektur ini mengikuti prinsip **SOLID**, **clean code**, dan **Feature-Based MVI pattern** dengan service orchestration, membuatnya ideal untuk proyek enterprise atau aplikasi yang akan berkembang dalam jangka panjang. Aplikasi memiliki state management yang predictable per feature, initialization yang robust, error handling yang comprehensive, dan notification system yang reliable dengan user experience yang optimal.
 
-**MVI Pattern** memberikan struktur yang jelas untuk complex state management, sementara **ViewModel class** menyediakan centralized business logic yang mudah untuk testing dan maintenance. Kombinasi ini menciptakan aplikasi yang scalable, maintainable, dan developer-friendly.
+**Feature-Based MVI Pattern** memberikan struktur yang jelas untuk complex multi-screen applications, sementara **feature-specific ViewModel classes** menyediakan isolated business logic yang mudah untuk testing dan maintenance. Kombinasi ini menciptakan aplikasi yang highly scalable, maintainable, dan developer-friendly dengan clear path untuk expansion.
+
+### Migration Path untuk Screen Baru
+
+Untuk menambah screen baru (misalnya BluetoothScreen), cukup:
+
+1. **Buat folder baru:** `src/presentation/screen/bluetooth/`
+2. **Copy pattern dari HomeScreen:**
+   - `BluetoothScreen.tsx` - UI component
+   - `BluetoothViewModel.ts` - Business logic dan state management
+   - `useBluetoothViewModel.ts` - React hook integration
+3. **Update App.tsx:** Ganti `<HomeScreen />` dengan routing logic
+4. **Implement navigation:** Gunakan React Navigation untuk multi-screen support
+
+Struktur ini memberikan foundation yang solid untuk aplikasi React Native enterprise dengan excellent developer experience dan maintainability jangka panjang.

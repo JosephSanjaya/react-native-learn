@@ -1,18 +1,18 @@
 import { useCallback, useReducer, useEffect, useMemo } from 'react';
-import { AppViewModel } from '../../AppViewModel';
-import { useServices } from '../context/ServiceContext';
-import { useBackgroundSync } from './useBackgroundSync';
-import { useAppInitialization } from './useAppInitialization';
-import { useConsoleLogger } from './useConsoleLogger';
+import { HomeViewModel } from './HomeViewModel';
+import { useServices } from '../../../di/context/ServiceContext';
+import { useBackgroundSync } from '../../../di/hooks/useBackgroundSync';
+import { useAppInitialization } from '../../../di/hooks/useAppInitialization';
+import { useConsoleLogger } from '../../../di/hooks/useConsoleLogger';
 
-export function useAppViewModel() {
+export function useHomeViewModel() {
   const services = useServices();
   const backgroundSyncService = useBackgroundSync();
   const appInitialization = useAppInitialization();
   const consoleLogger = useConsoleLogger();
 
   const viewModel = useMemo(() => {
-    return new AppViewModel(
+    return new HomeViewModel(
       services,
       backgroundSyncService,
       appInitialization,

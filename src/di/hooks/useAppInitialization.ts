@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useServices } from '../context/ServiceContext';
-import { AppInitializer } from '../services/AppInitializer';
-import { FCMMessageHandler } from '../services/FCMMessageHandler';
-import { PermissionStatus } from '../services/interfaces/IPermissionService';
-import { FCMMessage } from '../services/interfaces/IFCMService';
+import { useServices } from '../context/ServiceContext.tsx';
+import { AppInitializer } from '../../services/AppInitializer.ts';
+import { FCMMessageHandler } from '../../services/FCMMessageHandler.ts';
+import { PermissionStatus } from '../../services/interfaces/IPermissionService.ts';
+import { FCMMessage } from '../../services/interfaces/IFCMService.ts';
 
 export const useAppInitialization = () => {
   const [isInitialized, setIsInitialized] = useState(false);

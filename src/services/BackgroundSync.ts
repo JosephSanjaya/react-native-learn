@@ -1,5 +1,5 @@
 import BackgroundFetch from 'react-native-background-fetch';
-import { IPostRepository } from '../repositories/interfaces/IPostRepository';
+import { IPostRepository } from '../data/repositories/interfaces/IPostRepository';
 import { IBackgroundSyncService } from './interfaces/IBackgroundSyncService';
 
 export class BackgroundSyncService implements IBackgroundSyncService {

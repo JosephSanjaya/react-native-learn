@@ -7,15 +7,20 @@ import { INotificationService } from '../../services/interfaces/INotificationSer
 import { IFCMService } from '../../services/interfaces/IFCMService.ts';
 import { IBluetoothService } from '../../services/interfaces/IBluetoothService.ts';
 import { IBluetoothDeviceRepository } from '../../data/repositories/interfaces/IBluetoothDeviceRepository.ts';
+import { ICameraService } from '../../services/interfaces/ICameraService.ts';
+import { IBarcodeRepository } from '../../data/repositories/interfaces/IBarcodeRepository.ts';
 import { PostRepository } from '../../data/repositories/PostRepository.ts';
 import { FCMTokenRepository } from '../../data/repositories/FCMTokenRepository.ts';
 import { BluetoothDeviceRepository } from '../../data/repositories/BluetoothDeviceRepository.ts';
+import { BarcodeRepository } from '../../data/repositories/BarcodeRepository.ts';
 import { BackgroundSyncService } from '../../services/BackgroundSync.ts';
 import { PermissionService } from '../../services/PermissionService.ts';
 import { NotificationService } from '../../services/NotificationService.ts';
 import { FCMService } from '../../services/FCMService.ts';
 import { BluetoothService } from '../../services/BluetoothService.ts';
+import { CameraService } from '../../services/CameraService.ts';
 import { BluetoothUseCase } from '../../domain/usecases/BluetoothUseCase.ts';
+import { CameraUseCase } from '../../domain/usecases/CameraUseCase.ts';
 import { AppInitializer } from '../../services/AppInitializer.ts';
 import { FCMMessageHandler } from '../../services/FCMMessageHandler.ts';
 import { NotificationManager } from '../../services/NotificationManager.ts';
@@ -24,12 +29,15 @@ interface ServiceContextType {
   postRepository: IPostRepository;
   fcmTokenRepository: IFCMTokenRepository;
   bluetoothDeviceRepository: IBluetoothDeviceRepository;
+  barcodeRepository: IBarcodeRepository;
   backgroundSyncService: IBackgroundSyncService;
   permissionService: IPermissionService;
   notificationService: INotificationService;
   fcmService: IFCMService;
   bluetoothService: IBluetoothService;
+  cameraService: ICameraService;
   bluetoothUseCase: BluetoothUseCase;
+  cameraUseCase: CameraUseCase;
   appInitializer: AppInitializer;
   fcmMessageHandler: FCMMessageHandler;
   notificationManager: NotificationManager;
@@ -47,12 +55,15 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({
   const postRepository = new PostRepository();
   const fcmTokenRepository = new FCMTokenRepository();
   const bluetoothDeviceRepository = new BluetoothDeviceRepository();
+  const barcodeRepository = new BarcodeRepository();
   const backgroundSyncService = new BackgroundSyncService(postRepository);
   const permissionService = new PermissionService();
   const notificationService = new NotificationService();
   const fcmService = new FCMService(fcmTokenRepository);
   const bluetoothService = new BluetoothService(bluetoothDeviceRepository);
+  const cameraService = new CameraService();
   const bluetoothUseCase = new BluetoothUseCase(bluetoothService, bluetoothDeviceRepository);
+  const cameraUseCase = new CameraUseCase(cameraService, barcodeRepository);
 
   const appInitializer = new AppInitializer(
     fcmService,
@@ -73,12 +84,15 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({
     postRepository,
     fcmTokenRepository,
     bluetoothDeviceRepository,
+    barcodeRepository,
     backgroundSyncService,
     permissionService,
     notificationService,
     fcmService,
     bluetoothService,
+    cameraService,
     bluetoothUseCase,
+    cameraUseCase,
     appInitializer,
     fcmMessageHandler,
     notificationManager,

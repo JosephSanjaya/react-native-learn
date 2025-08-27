@@ -36,9 +36,10 @@ const EnhancedPostsList = enhance(PostsList);
 
 interface HomeScreenProps {
   onNavigateToBluetooth?: () => void;
+  onNavigateToCamera?: () => void;
 }
 
-export const HomeScreen = ({ onNavigateToBluetooth }: HomeScreenProps) => {
+export const HomeScreen = ({ onNavigateToBluetooth, onNavigateToCamera }: HomeScreenProps) => {
   const { state, actions } = useHomeViewModel();
 
   if (!state.isInitialized && !state.initializationError) {
@@ -74,20 +75,33 @@ export const HomeScreen = ({ onNavigateToBluetooth }: HomeScreenProps) => {
         </View>
       </View>
 
-      {onNavigateToBluetooth && (
-        <View style={styles.bluetoothSection}>
+      <View style={styles.featuresSection}>
+        {onNavigateToBluetooth && (
           <TouchableOpacity 
-            style={styles.bluetoothCard} 
+            style={styles.featureCard} 
             onPress={onNavigateToBluetooth}
           >
-            <View style={styles.bluetoothCardContent}>
-              <Text style={styles.bluetoothCardTitle}>🖨️ Bluetooth Printer</Text>
-              <Text style={styles.bluetoothCardSubtitle}>Connect and print to thermal printers</Text>
+            <View style={styles.featureCardContent}>
+              <Text style={styles.featureCardTitle}>🖨️ Bluetooth Printer</Text>
+              <Text style={styles.featureCardSubtitle}>Connect and print to thermal printers</Text>
             </View>
-            <Text style={styles.bluetoothCardArrow}>→</Text>
+            <Text style={styles.featureCardArrow}>→</Text>
           </TouchableOpacity>
-        </View>
-      )}
+        )}
+        
+        {onNavigateToCamera && (
+          <TouchableOpacity 
+            style={[styles.featureCard, styles.cameraCard]} 
+            onPress={onNavigateToCamera}
+          >
+            <View style={styles.featureCardContent}>
+              <Text style={styles.featureCardTitle}>📷 Barcode Scanner</Text>
+              <Text style={styles.featureCardSubtitle}>Scan barcodes with camera</Text>
+            </View>
+            <Text style={styles.featureCardArrow}>→</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       <View style={styles.fcmSection}>
         <Text style={styles.sectionTitle}>FCM & Notifications</Text>
@@ -185,11 +199,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  bluetoothSection: {
+  featuresSection: {
     paddingHorizontal: 16,
     paddingVertical: 12,
+    gap: 12,
   },
-  bluetoothCard: {
+  featureCard: {
     backgroundColor: '#FF9800',
     borderRadius: 12,
     padding: 16,
@@ -205,20 +220,23 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  bluetoothCardContent: {
+  cameraCard: {
+    backgroundColor: '#4CAF50',
+  },
+  featureCardContent: {
     flex: 1,
   },
-  bluetoothCardTitle: {
+  featureCardTitle: {
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
   },
-  bluetoothCardSubtitle: {
+  featureCardSubtitle: {
     color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 14,
   },
-  bluetoothCardArrow: {
+  featureCardArrow: {
     color: 'white',
     fontSize: 24,
     fontWeight: 'bold',

@@ -15,9 +15,14 @@ Tujuan dari proyek ini adalah untuk menunjukkan cara melakukan sinkronisasi data
 *   **`react-native-push-notification`:** Pustaka untuk menangani notifikasi lokal dengan pencegahan duplikasi.
 *   **`@react-native-async-storage/async-storage`:** Penyimpanan lokal untuk FCM token dan data aplikasi.
 *   **`react-native-thermal-printer`:** Pustaka untuk koneksi dan printing ke thermal printer via Bluetooth.
+*   **`react-native-vision-camera`:** Pustaka untuk akses kamera dan barcode scanning dengan performa tinggi.
 *   **TypeScript:** Superset JavaScript yang diketik.
 *   **React Context API:** Untuk dependency injection dan state management.
 *   **Repository Pattern:** Untuk abstraksi layer data dan pemisahan concerns.
+
+> Notes untuk `react-native-vision-camera`, library tidak bisa berjalan out of the box perlu merubah sedikit pada `node_modules`
+> `com.mrousavy.camera.react.CameraViewManager` perlu mengganti output type `getExportedCustomDirectEventTypeConstants` menjadi `Map<String, Any>`   
+> `com.mrousavy.camera.react.CameraViewModule` perlu mengganti `currentActivity` menjadi `reactApplicationContext.currentActivity`
 
 ## 2. Struktur Proyek
 
@@ -37,10 +42,12 @@ Struktur proyek telah direfactor menggunakan feature-based architecture dengan c
 │   │       ├── interfaces
 │   │       │   ├── IPostRepository.ts
 │   │       │   ├── IFCMTokenRepository.ts
-│   │       │   └── IBluetoothDeviceRepository.ts
+│   │       │   ├── IBluetoothDeviceRepository.ts
+│   │       │   └── IBarcodeRepository.ts
 │   │       ├── PostRepository.ts
 │   │       ├── FCMTokenRepository.ts
-│   │       └── BluetoothDeviceRepository.ts
+│   │       ├── BluetoothDeviceRepository.ts
+│   │       └── BarcodeRepository.ts
 │   ├── di (Dependency Injection)
 │   │   ├── context
 │   │   │   └── ServiceContext.tsx
@@ -66,9 +73,13 @@ Struktur proyek telah direfactor menggunakan feature-based architecture dengan c
 │   │       │   ├── BluetoothViewModel.ts
 │   │       │   └── useBluetoothViewModel.ts
 │   │       └── camera
+│   │           ├── CameraScreen.tsx
+│   │           ├── CameraViewModel.ts
+│   │           └── useCameraViewModel.ts
 │   ├── domain
 │   │   └── usecases
-│   │       └── BluetoothUseCase.ts
+│   │       ├── BluetoothUseCase.ts
+│   │       └── CameraUseCase.ts
 │   ├── types
 │   │   └── react-native-thermal-printer.d.ts
 │   └── services
@@ -77,7 +88,8 @@ Struktur proyek telah direfactor menggunakan feature-based architecture dengan c
 │       │   ├── IPermissionService.ts
 │       │   ├── INotificationService.ts
 │       │   ├── IFCMService.ts
-│       │   └── IBluetoothService.ts
+│       │   ├── IBluetoothService.ts
+│       │   └── ICameraService.ts
 │       ├── AppInitializer.ts
 │       ├── FirebaseInitializer.ts
 │       ├── FCMMessageHandler.ts
@@ -87,7 +99,8 @@ Struktur proyek telah direfactor menggunakan feature-based architecture dengan c
 │       ├── PermissionService.ts
 │       ├── NotificationService.ts
 │       ├── FCMService.ts
-│       └── BluetoothService.ts
+│       ├── BluetoothService.ts
+│       └── CameraService.ts
 ├── App.tsx (navigation dan routing)
 ├── index.js
 └── ...
@@ -107,10 +120,10 @@ Struktur proyek telah direfactor menggunakan feature-based architecture dengan c
         *   **`components`:** Reusable UI components
         *   **`screen`:** Feature-based screens dengan own ViewModel dan hooks
             *   **`home`:** Home screen dengan HomeViewModel dan useHomeViewModel
-            *   **`bluetooth`:** Bluetooth feature (ready for expansion)
-            *   **`camera`:** Camera feature (ready for expansion)
+            *   **`bluetooth`:** Bluetooth printer feature dengan device scanning dan printing capabilities
+            *   **`camera`:** Camera barcode scanning feature dengan real-time detection
     *   **`services`:** Business logic layer dengan service orchestrators dan specialized handlers
-*   **`App.tsx`:** Entry point dengan simple navigation system antara HomeScreen dan BluetoothScreen
+*   **`App.tsx`:** Entry point dengan simple navigation system antara HomeScreen, BluetoothScreen, dan CameraScreen
 *   **`index.js`:** Entry point aplikasi dengan Firebase module initialization
 
 ### Keuntungan Feature-Based Architecture
@@ -130,6 +143,7 @@ Struktur proyek telah direfactor menggunakan feature-based architecture dengan c
 - Each screen self-contained dengan own state management
 - Easy untuk upgrade ke React Navigation jika diperlukan
 - Bluetooth printer feature sudah fully integrated
+- Camera barcode scanning feature sudah fully integrated
 
 ## 3. Basis Data Lokal dengan WatermelonDB
 
@@ -703,7 +717,7 @@ export const BluetoothScreen = ({ onNavigateBack }: BluetoothScreenProps) => {
 
 **Simple State-Based Navigation:**
 ```typescript
-type Screen = 'home' | 'bluetooth';
+type Screen = 'home' | 'bluetooth' | 'camera';
 
 const App = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
@@ -711,11 +725,23 @@ const App = () => {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'home':
-        return <HomeScreen onNavigateToBluetooth={() => setCurrentScreen('bluetooth')} />;
+        return (
+          <HomeScreen 
+            onNavigateToBluetooth={() => setCurrentScreen('bluetooth')}
+            onNavigateToCamera={() => setCurrentScreen('camera')}
+          />
+        );
       case 'bluetooth':
         return <BluetoothScreen onNavigateBack={() => setCurrentScreen('home')} />;
+      case 'camera':
+        return <CameraScreen onNavigateBack={() => setCurrentScreen('home')} />;
       default:
-        return <HomeScreen onNavigateToBluetooth={() => setCurrentScreen('bluetooth')} />;
+        return (
+          <HomeScreen 
+            onNavigateToBluetooth={() => setCurrentScreen('bluetooth')}
+            onNavigateToCamera={() => setCurrentScreen('camera')}
+          />
+        );
     }
   };
 
@@ -729,22 +755,35 @@ const App = () => {
 };
 ```
 
-**Enhanced HomeScreen dengan Bluetooth Card:**
+**Enhanced HomeScreen dengan Feature Cards:**
 ```typescript
-{onNavigateToBluetooth && (
-  <View style={styles.bluetoothSection}>
+<View style={styles.featuresSection}>
+  {onNavigateToBluetooth && (
     <TouchableOpacity 
-      style={styles.bluetoothCard} 
+      style={styles.featureCard} 
       onPress={onNavigateToBluetooth}
     >
-      <View style={styles.bluetoothCardContent}>
-        <Text style={styles.bluetoothCardTitle}>🖨️ Bluetooth Printer</Text>
-        <Text style={styles.bluetoothCardSubtitle}>Connect and print to thermal printers</Text>
+      <View style={styles.featureCardContent}>
+        <Text style={styles.featureCardTitle}>🖨️ Bluetooth Printer</Text>
+        <Text style={styles.featureCardSubtitle}>Connect and print to thermal printers</Text>
       </View>
-      <Text style={styles.bluetoothCardArrow}>→</Text>
+      <Text style={styles.featureCardArrow}>→</Text>
     </TouchableOpacity>
-  </View>
-)}
+  )}
+  
+  {onNavigateToCamera && (
+    <TouchableOpacity 
+      style={[styles.featureCard, styles.cameraCard]} 
+      onPress={onNavigateToCamera}
+    >
+      <View style={styles.featureCardContent}>
+        <Text style={styles.featureCardTitle}>📷 Barcode Scanner</Text>
+        <Text style={styles.featureCardSubtitle}>Scan barcodes with camera</Text>
+      </View>
+      <Text style={styles.featureCardArrow}>→</Text>
+    </TouchableOpacity>
+  )}
+</View>
 ```
 
 ### 6.5. Type Definitions
@@ -800,6 +839,383 @@ declare module 'react-native-thermal-printer' {
 - Error handling dengan user feedback
 - Connection status indicators
 - Device list dengan scan functionality
+- Prominent navigation dari HomeScreen
+
+## 7. Camera Barcode Scanning Integration
+
+Aplikasi telah diintegrasikan dengan fitur camera barcode scanning menggunakan `react-native-vision-camera` library dengan arsitektur yang bersih dan dapat diuji.
+
+### 7.1. Komponen Camera
+
+#### Camera Service Interface
+
+Interface untuk mengelola camera permissions dan barcode scanning:
+
+```typescript
+export interface ICameraService {
+  requestCameraPermission(): Promise<CameraPermissionStatus>;
+  checkCameraPermission(): Promise<CameraPermissionStatus>;
+  startBarcodeScanning(): Promise<void>;
+  stopBarcodeScanning(): Promise<void>;
+  onBarcodeDetected(callback: (barcode: BarcodeResult) => void): () => void;
+  isCameraAvailable(): Promise<boolean>;
+}
+```
+
+#### Barcode Repository
+
+Repository untuk mengelola data barcode yang terscan:
+
+```typescript
+export interface IBarcodeRepository {
+  saveBarcodeResult(value: string, type: string): Promise<BarcodeData>;
+  getBarcodeHistory(): Promise<BarcodeData[]>;
+  clearBarcodeHistory(): Promise<void>;
+  getLastScannedBarcode(): Promise<BarcodeData | null>;
+}
+```
+
+#### Camera Use Case
+
+Use case layer untuk business logic camera operations:
+
+```typescript
+export class CameraUseCase {
+  constructor(
+    private cameraService: ICameraService,
+    private barcodeRepository: IBarcodeRepository
+  ) {}
+
+  async requestCameraPermissionWithFeedback(): Promise<CameraPermissionStatus> {
+    const permissionStatus = await this.cameraService.requestCameraPermission();
+    
+    if (!permissionStatus.granted) {
+      console.warn('Camera permission not granted:', permissionStatus.status);
+    }
+    
+    return permissionStatus;
+  }
+
+  async startScanningWithCallback(
+    onBarcodeDetected: (barcode: BarcodeData) => void
+  ): Promise<() => void> {
+    await this.cameraService.startBarcodeScanning();
+    
+    const unsubscribe = this.cameraService.onBarcodeDetected(async (barcode: BarcodeResult) => {
+      const savedBarcode = await this.barcodeRepository.saveBarcodeResult(
+        barcode.value,
+        barcode.type
+      );
+      onBarcodeDetected(savedBarcode);
+    });
+
+    return () => {
+      unsubscribe();
+      this.cameraService.stopBarcodeScanning();
+    };
+  }
+}
+```
+
+### 7.2. Camera Service Implementation
+
+**Production-Ready Implementation:**
+```typescript
+export class CameraService implements ICameraService {
+  private barcodeCallbacks: ((barcode: BarcodeResult) => void)[] = [];
+  private isScanning = false;
+
+  async requestCameraPermission(): Promise<CameraPermissionStatus> {
+    try {
+      const permission = await Camera.requestCameraPermission();
+      
+      return {
+        granted: permission === 'granted',
+        canAskAgain: permission !== 'denied',
+        status: permission as 'granted' | 'denied' | 'restricted' | 'not-determined'
+      };
+    } catch (error) {
+      console.error('Error requesting camera permission:', error);
+      return {
+        granted: false,
+        canAskAgain: false,
+        status: 'denied'
+      };
+    }
+  }
+
+  async isCameraAvailable(): Promise<boolean> {
+    try {
+      const devices = await Camera.getAvailableCameraDevices();
+      return devices.length > 0;
+    } catch (error) {
+      console.error('Error checking camera availability:', error);
+      return false;
+    }
+  }
+}
+```
+
+### 7.3. Camera Screen Implementation
+
+**CameraViewModel dengan MVI Pattern:**
+```typescript
+export class CameraViewModel {
+  constructor(
+    private cameraUseCase: CameraUseCase,
+    private dispatch: (action: CameraAction) => void
+  ) {}
+
+  async initializeCamera(): Promise<void> {
+    this.dispatch({ type: 'INITIALIZATION_START' });
+    try {
+      const { available, permission } = await this.cameraUseCase.checkCameraAvailabilityAndPermission();
+      
+      this.dispatch({
+        type: 'INITIALIZATION_SUCCESS',
+        payload: {
+          cameraPermission: permission,
+          isCameraAvailable: available
+        }
+      });
+
+      const history = await this.cameraUseCase.getBarcodeHistory();
+      history.forEach(barcode => {
+        this.dispatch({ type: 'BARCODE_DETECTED', payload: barcode });
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Camera initialization failed';
+      this.dispatch({ type: 'INITIALIZATION_ERROR', payload: errorMessage });
+    }
+  }
+
+  async startScanning(): Promise<void> {
+    try {
+      this.dispatch({ type: 'START_SCANNING' });
+      
+      this.scanningUnsubscribe = await this.cameraUseCase.startScanningWithCallback(
+        (barcode: BarcodeData) => {
+          this.dispatch({ type: 'BARCODE_DETECTED', payload: barcode });
+          this.dispatch({ type: 'SHOW_BARCODE_DIALOG', payload: barcode });
+        }
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start scanning';
+      this.dispatch({ type: 'SET_ERROR', payload: errorMessage });
+      this.dispatch({ type: 'STOP_SCANNING' });
+    }
+  }
+}
+```
+
+**CameraScreen dengan Enhanced UI:**
+```typescript
+export const CameraScreen = ({ onNavigateBack }: CameraScreenProps) => {
+  const { state, actions } = useCameraViewModel();
+  const device = useCameraDevice('back');
+  const cameraRef = useRef<Camera>(null);
+
+  const codeScanner = useCodeScanner({
+    codeTypes: ['qr', 'ean-13', 'ean-8', 'code-128', 'code-39', 'code-93', 'codabar', 'upc-a', 'upc-e'],
+    onCodeScanned: (codes) => {
+      if (codes.length > 0 && state.isScanning) {
+        const code = codes[0];
+        // Handle barcode detection
+        Alert.alert(
+          'Barcode Detected',
+          `Value: ${code.value}\nType: ${code.type}`,
+          [{ text: 'OK', onPress: () => actions.stopScanning() }]
+        );
+      }
+    },
+  });
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onNavigateBack} style={styles.backButton}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Barcode Scanner</Text>
+      </View>
+
+      <View style={styles.cameraContainer}>
+        <Camera
+          ref={cameraRef}
+          style={styles.camera}
+          device={device}
+          isActive={state.isScanning}
+          codeScanner={state.isScanning ? codeScanner : undefined}
+        />
+        
+        <View style={styles.overlay}>
+          <View style={styles.scanArea} />
+          <Text style={styles.scanInstruction}>
+            {state.isScanning ? 'Point camera at barcode' : 'Tap scan to start'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.controlsContainer}>
+        <TouchableOpacity
+          style={[
+            styles.scanButton,
+            state.isScanning ? styles.stopButton : styles.startButton
+          ]}
+          onPress={state.isScanning ? actions.stopScanning : actions.startScanning}
+        >
+          <Text style={styles.scanButtonText}>
+            {state.isScanning ? 'Stop Scanning' : 'Start Scanning'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.historyContainer}>
+        <View style={styles.historyHeader}>
+          <Text style={styles.historyTitle}>Scan History</Text>
+          {state.scannedBarcodes.length > 0 && (
+            <TouchableOpacity onPress={actions.clearBarcodeHistory} style={styles.clearButton}>
+              <Text style={styles.clearButtonText}>Clear</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        
+        <FlatList
+          data={state.scannedBarcodes}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.historyItem}>
+              <Text style={styles.barcodeValue}>{item.value}</Text>
+              <Text style={styles.barcodeType}>{item.type}</Text>
+              <Text style={styles.barcodeDate}>
+                {item.scannedAt.toLocaleString()}
+              </Text>
+            </View>
+          )}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>No barcodes scanned yet</Text>
+          }
+        />
+      </View>
+    </SafeAreaView>
+  );
+};
+```
+
+### 7.4. Navigation Implementation
+
+**Enhanced Navigation dengan Camera Screen:**
+```typescript
+type Screen = 'home' | 'bluetooth' | 'camera';
+
+const App = () => {
+  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+
+  const renderScreen = () => {
+    switch (currentScreen) {
+      case 'home':
+        return (
+          <HomeScreen 
+            onNavigateToBluetooth={() => setCurrentScreen('bluetooth')}
+            onNavigateToCamera={() => setCurrentScreen('camera')}
+          />
+        );
+      case 'bluetooth':
+        return <BluetoothScreen onNavigateBack={() => setCurrentScreen('home')} />;
+      case 'camera':
+        return <CameraScreen onNavigateBack={() => setCurrentScreen('home')} />;
+      default:
+        return (
+          <HomeScreen 
+            onNavigateToBluetooth={() => setCurrentScreen('bluetooth')}
+            onNavigateToCamera={() => setCurrentScreen('camera')}
+          />
+        );
+    }
+  };
+
+  return (
+    <SafeAreaProvider>
+      <ServiceProvider>
+        {renderScreen()}
+      </ServiceProvider>
+    </SafeAreaProvider>
+  );
+};
+```
+
+**Enhanced HomeScreen dengan Camera Card:**
+```typescript
+<View style={styles.featuresSection}>
+  {onNavigateToBluetooth && (
+    <TouchableOpacity 
+      style={styles.featureCard} 
+      onPress={onNavigateToBluetooth}
+    >
+      <View style={styles.featureCardContent}>
+        <Text style={styles.featureCardTitle}>🖨️ Bluetooth Printer</Text>
+        <Text style={styles.featureCardSubtitle}>Connect and print to thermal printers</Text>
+      </View>
+      <Text style={styles.featureCardArrow}>→</Text>
+    </TouchableOpacity>
+  )}
+  
+  {onNavigateToCamera && (
+    <TouchableOpacity 
+      style={[styles.featureCard, styles.cameraCard]} 
+      onPress={onNavigateToCamera}
+    >
+      <View style={styles.featureCardContent}>
+        <Text style={styles.featureCardTitle}>📷 Barcode Scanner</Text>
+        <Text style={styles.featureCardSubtitle}>Scan barcodes with camera</Text>
+      </View>
+      <Text style={styles.featureCardArrow}>→</Text>
+    </TouchableOpacity>
+  )}
+</View>
+```
+
+### 7.5. Supported Barcode Formats
+
+Camera screen mendukung berbagai format barcode:
+
+- **QR Code**: Quick Response codes
+- **EAN-13**: European Article Number (13 digits)
+- **EAN-8**: European Article Number (8 digits)
+- **Code-128**: High-density linear barcode
+- **Code-39**: Variable length alphanumeric barcode
+- **Code-93**: Compact alphanumeric barcode
+- **Codabar**: Numeric barcode with start/stop characters
+- **UPC-A**: Universal Product Code (12 digits)
+- **UPC-E**: Compressed UPC-A format
+
+### 7.6. Keuntungan Implementasi Camera
+
+**Development-Friendly:**
+- Permission management dengan user-friendly flow
+- Real-time barcode detection dengan visual feedback
+- Scan history dengan persistent storage
+- Error handling dengan proper user feedback
+
+**Production-Ready:**
+- Full camera integration dengan react-native-vision-camera
+- Multiple barcode format support
+- Permission handling untuk Android dan iOS
+- Camera availability detection
+- Proper cleanup dan memory management
+
+**Clean Architecture:**
+- Repository pattern untuk barcode data storage
+- Use case layer untuk business logic
+- Service layer untuk camera abstraction
+- MVI pattern untuk predictable state management
+
+**User Experience:**
+- Loading states untuk semua operations
+- Permission request flow dengan clear messaging
+- Visual scan area dengan overlay
+- Scan history dengan clear functionality
+- Real-time barcode detection feedback
 - Prominent navigation dari HomeScreen
 
 ## 5. Arsitektur MVI (Model-View-Intent) dengan Feature-Based Structure
@@ -1719,10 +2135,10 @@ Untuk menggunakan fitur FCM, Anda perlu mengkonfigurasi Firebase project:
 
 ### 10.3. Dependencies Installation
 
-Pastikan semua dependencies FCM sudah terinstall:
+Pastikan semua dependencies sudah terinstall:
 
 ```bash
-yarn add @react-native-firebase/app @react-native-firebase/messaging @react-native-async-storage/async-storage react-native-push-notification react-native-thermal-printer
+yarn add @react-native-firebase/app @react-native-firebase/messaging @react-native-async-storage/async-storage react-native-push-notification react-native-thermal-printer react-native-vision-camera react-native-worklets-core
 ```
 
 **Platform Linking (jika diperlukan):**
@@ -1762,13 +2178,14 @@ Proyek ini memberikan dasar yang kuat untuk membangun aplikasi React Native deng
 - **Highly Scalable:** Feature-based architecture dengan clear boundaries untuk expansion
 - **Reliable:** Immutable state management dengan predictable action flow per feature
 - **Developer-Friendly:** Feature isolation dan self-contained dependency injection
-- **Navigation Implementation:** Simple state-based navigation system sudah terimplementasi dengan Bluetooth screen
+- **Navigation Implementation:** Simple state-based navigation system sudah terimplementasi dengan Bluetooth dan Camera screen
 - **Real-time Communication:** FCM integration dengan automatic message handling
 - **Offline-First:** Local storage dengan WatermelonDB dan AsyncStorage
 - **Permission Management:** Comprehensive permission handling dengan user feedback
 - **Notification Control:** Enhanced notification service dengan permission validation
 - **Firebase Integration:** Proper Firebase initialization dan configuration validation
 - **Bluetooth Printing:** Full thermal printer support dengan BLE connection dan mock development mode
+- **Camera Barcode Scanning:** Real-time barcode detection dengan multiple format support dan scan history
 
 ### Fitur Lengkap yang Tersedia:
 
@@ -1802,6 +2219,8 @@ Proyek ini memberikan dasar yang kuat untuk membangun aplikasi React Native deng
 - Feature-specific UI components yang terisolasi
 - **Bluetooth printer card** dengan prominent navigation dari HomeScreen
 - **BluetoothScreen** dengan device scanning, connection management, dan printing capabilities
+- **Camera barcode scanner card** dengan prominent navigation dari HomeScreen
+- **CameraScreen** dengan real-time barcode detection, scan history, dan multiple format support
 
 **Clean Architecture Benefits:**
 - **Repository Pattern:** Data access abstraction dengan interface contracts
@@ -1827,31 +2246,43 @@ Arsitektur ini mengikuti prinsip **SOLID**, **clean code**, dan **Feature-Based 
 ### Implemented Features
 
 **Bluetooth Printer Integration:**
-pattern
 - ✅ **Device scanning** dengan mock support untuk development
-- ✅ **Connection management** denganallback
-- ✅ **Printing capabilities** untuk text,ts
+- ✅ **Connection management** dengan proper error handling
+- ✅ **Printing capabilities** untuk text, images, dan receipts
 - ✅ **Navigation** dari HomeScreen dengan prominent Bluetooth card
-- ✅ **Error handling** dan loading states untuk semua ops
+- ✅ **Error handling** dan loading states untuk semua operations
 - ✅ **Repository pattern** untuk device storage dan management
 - ✅ **Use case layer** untuk business logic abstraction
 
+**Camera Barcode Scanning Integration:**
+- ✅ **Real-time barcode detection** dengan react-native-vision-camera
+- ✅ **Multiple barcode formats** support (QR, EAN-13, Code-128, dll)
+- ✅ **Camera permission management** dengan user-friendly flow
+- ✅ **Scan history** dengan persistent storage menggunakan AsyncStorage
+- ✅ **Navigation** dari HomeScreen dengan prominent Camera card
+- ✅ **Error handling** dan loading states untuk semua operations
+- ✅ **Repository pattern** untuk barcode data storage dan management
+- ✅ **Use case layer** untuk camera business logic abstraction
+
 **Navigation System:**
-aScreenCamerntuk meScreen u Hon prop diah navigatioambon:** Tnavigati
-4. **Add on() functinderScreene baru di re cas** Tambahtsx:e App.**Updat3. ion
-rat hook integs` - ReactViewModel.t `useCamera  -
-  managementan statess logic dine.ts` - BusdeleraViewMo
-   - `Camonent` - UI compraScreen.tsxCame- `**
-   en:uetoothScredari Bly pattern op2. **Cmera/`
-een/cascrion/resentat:** `src/plder barufo **Buat 
+- ✅ **Simple state-based navigation** antara Home, Bluetooth, dan Camera screen
+- ✅ **Back navigation** dengan proper state management
+- ✅ **Easy upgrade path** untuk React Navigation jika diperlukan
+- ✅ **Feature cards** di HomeScreen untuk navigasi ke berbagai fitur
 
-1.cukup:reen), nya CameraScalaru (miscreen bmenambah sru
+### Migration Path untuk Screen Baru
 
-Untuk reen Bauk ScPath untMigration ### ks
+Untuk menambah screen baru (misal: SettingsScreen), cukup:
 
-ion callbactuk navigatprops** unen Scre**✅ nagement
-- mate n proper staon** dengak navigati
-- ✅ **Baca diperlukanjiktion act Navigae Re* k path*grade up*Easy *en
-- ✅toothScrelueeen dan BmeScr* antara Hoon*avigati nte-basedle sta **Simp- ✅
+1. **Buat folder baru:** `src/presentation/screen/settings/`
+   - `SettingsScreen.tsx` - UI component
+   - `SettingsViewModel.ts` - Business logic dan state management
+   - `useSettingsViewModel.ts` - React hook integration
+
+2. **Copy MVI pattern** dari CameraScreen atau BluetoothScreen
+
+3. **Update App.tsx:** Tambah case baru di renderScreen() function
+
+4. **Add navigation props** untuk HomeScreen dan tambah navigation card
 
 Struktur ini memberikan foundation yang solid untuk aplikasi React Native enterprise dengan excellent developer experience dan maintainability jangka panjang.

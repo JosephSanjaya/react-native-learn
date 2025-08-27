@@ -6035,6 +6035,11 @@ react-native-sqlite-storage@^6.0.1:
   resolved "https://registry.npmjs.org/react-native-sqlite-storage/-/react-native-sqlite-storage-6.0.1.tgz"
   integrity sha512-1tDFjrint6X6qSYKf3gDyz+XB+X79jfiL6xTugKHPRtF0WvqMtVgdLuNqZunIXjNEvNtNVEbXaeZ6MsguFu00A==
 
+react-native-thermal-printer@^2.3.6:
+  version "2.3.6"
+  resolved "https://registry.yarnpkg.com/react-native-thermal-printer/-/react-native-thermal-printer-2.3.6.tgz#ee8427cc3435fc4aa3bb9116ec4052df071b4d2a"
+  integrity sha512-UUQr2kezIkkvzeF0HvUzfOxOvbYvcNk6veMktqjKZYpt8aGPEA0eTDrH1Od21uEdfPdrNhBwsyOUpCih1sLAKw==
+
 react-native@0.81.0:
   version "0.81.0"
   resolved "https://registry.npmjs.org/react-native/-/react-native-0.81.0.tgz"

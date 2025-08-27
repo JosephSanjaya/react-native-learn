@@ -21,7 +21,8 @@
     "react-native-background-fetch": "^4.2.8",
     "react-native-push-notification": "^8.1.1",
     "react-native-safe-area-context": "^5.5.2",
-    "react-native-sqlite-storage": "^6.0.1"
+    "react-native-sqlite-storage": "^6.0.1",
+    "react-native-thermal-printer": "^2.3.6"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

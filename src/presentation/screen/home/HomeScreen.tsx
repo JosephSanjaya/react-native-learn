@@ -34,7 +34,11 @@ const enhance = withObservables([], () => ({
 
 const EnhancedPostsList = enhance(PostsList);
 
-export const HomeScreen = () => {
+interface HomeScreenProps {
+  onNavigateToBluetooth?: () => void;
+}
+
+export const HomeScreen = ({ onNavigateToBluetooth }: HomeScreenProps) => {
   const { state, actions } = useHomeViewModel();
 
   if (!state.isInitialized && !state.initializationError) {
@@ -61,12 +65,29 @@ export const HomeScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>WorkManagerSample</Text>
-        <Button 
-          title={state.isPerformingSync ? "Syncing..." : "Manual Sync"} 
-          onPress={actions.performManualSync}
-          disabled={state.isPerformingSync}
-        />
+        <View style={styles.headerButtons}>
+          <Button 
+            title={state.isPerformingSync ? "Syncing..." : "Manual Sync"} 
+            onPress={actions.performManualSync}
+            disabled={state.isPerformingSync}
+          />
+        </View>
       </View>
+
+      {onNavigateToBluetooth && (
+        <View style={styles.bluetoothSection}>
+          <TouchableOpacity 
+            style={styles.bluetoothCard} 
+            onPress={onNavigateToBluetooth}
+          >
+            <View style={styles.bluetoothCardContent}>
+              <Text style={styles.bluetoothCardTitle}>🖨️ Bluetooth Printer</Text>
+              <Text style={styles.bluetoothCardSubtitle}>Connect and print to thermal printers</Text>
+            </View>
+            <Text style={styles.bluetoothCardArrow}>→</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.fcmSection}>
         <Text style={styles.sectionTitle}>FCM & Notifications</Text>
@@ -145,8 +166,9 @@ export const HomeScreen = () => {
       </View>
     </SafeAreaView>
   );
-};const
- styles = StyleSheet.create({
+};
+
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -157,6 +179,50 @@ export const HomeScreen = () => {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bluetoothSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  bluetoothCard: {
+    backgroundColor: '#FF9800',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  bluetoothCardContent: {
+    flex: 1,
+  },
+  bluetoothCardTitle: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  bluetoothCardSubtitle: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
+  },
+  bluetoothCardArrow: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginLeft: 12,
   },
   title: {
     fontSize: 24,

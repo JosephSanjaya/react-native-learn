@@ -75,8 +75,9 @@ export class HomeViewModel {
       isPerformingSync: false,
       error: null,
     };
-  }  reducer
-(state: HomeState, action: HomeAction): HomeState {
+  }
+
+  reducer(state: HomeState, action: HomeAction): HomeState {
     switch (action.type) {
       case 'INITIALIZATION_START':
         return { 
@@ -205,7 +206,7 @@ export class HomeViewModel {
   async requestNotificationPermission(): Promise<void> {
     this.dispatch({ type: 'REQUEST_PERMISSION_START' });
     try {
-      const status = await this.services.notificationManager.requestPermissionWithFeedback();
+      const status = await this.services.permissionService.requestNotificationPermission();
       this.appInitialization.setPermissionStatus(status);
       this.dispatch({ type: 'REQUEST_PERMISSION_SUCCESS', payload: status });
     } catch (error) {

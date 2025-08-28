@@ -5,6 +5,7 @@ import Post from './Post.ts'
 
 const adapter = new SQLiteAdapter({
   schema,
+  dbName: 'WorkManagerSample',
 })
 
 export const database = new Database({

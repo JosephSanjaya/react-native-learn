@@ -1,70 +1,41 @@
-declare module 'react-native-thermal-printer' {
-  export interface PrinterDevice {
-    device_name?: string;
-    inner_mac_address?: string;
-    device_id?: string;
-  }
+// react-native-thermal-printer.d.ts
+import { NativeModules } from "react-native";
 
-  export interface PrinterOptions {
-    beep?: boolean;
-    cut?: boolean;
-    tailingLine?: boolean;
-    encoding?: string;
-  }
+type BluetoothPrinter = {
+    deviceName: string;
+    macAddress: string;
+};
 
-  export interface ImageOptions {
-    imageWidth?: number;
-    imageHeight?: number;
-  }
+interface ThermalPrinterModuleType {
+    printTcp(
+        ip: string,
+        port: number,
+        payload: string,
+        autoCut: boolean,
+        openCashbox: boolean,
+        mmFeedPaper: number,
+        printerDpi: number,
+        printerWidthMM: number,
+        printerNbrCharactersPerLine: number,
+        timeout: number
+    ): Promise<void>;
 
-  export interface ConnectPayload {
-    inner_mac_address: string;
-  }
+    printBluetooth(
+        macAddress: string,
+        payload: string,
+        autoCut: boolean,
+        openCashbox: boolean,
+        mmFeedPaper: number,
+        printerDpi: number,
+        printerWidthMM: number,
+        printerNbrCharactersPerLine: number
+    ): Promise<void>;
 
-  export interface IUSBPrinter {
-    deviceList(): Promise<PrinterDevice[]>;
-    connectPrinter(payload: any): Promise<void>;
-    closeConn(): Promise<void>;
-    printText(text: string, options?: PrinterOptions): Promise<void>;
-    printPic(imagePath: string, options?: ImageOptions): Promise<void>;
-  }
+    getBluetoothDeviceList(): Promise<BluetoothPrinter[]>;
+}
 
-  export interface INetPrinter {
-    deviceList(): Promise<PrinterDevice[]>;
-    connectPrinter(payload: any): Promise<void>;
-    closeConn(): Promise<void>;
-    printText(text: string, options?: PrinterOptions): Promise<void>;
-    printPic(imagePath: string, options?: ImageOptions): Promise<void>;
-  }
-
-  export interface IBLEPrinter {
-    connectPrinter(payload: ConnectPayload): Promise<void>;
-    closeConn(): Promise<void>;
-    printText(text: string, options?: PrinterOptions): Promise<void>;
-    printPic(imagePath: string, options?: ImageOptions): Promise<void>;
-  }
-
-  export class USBPrinter implements IUSBPrinter {
-    static deviceList(): Promise<PrinterDevice[]>;
-    connectPrinter(payload: any): Promise<void>;
-    closeConn(): Promise<void>;
-    printText(text: string, options?: PrinterOptions): Promise<void>;
-    printPic(imagePath: string, options?: ImageOptions): Promise<void>;
-  }
-
-  export class NetPrinter implements INetPrinter {
-    static deviceList(): Promise<PrinterDevice[]>;
-    connectPrinter(payload: any): Promise<void>;
-    closeConn(): Promise<void>;
-    printText(text: string, options?: PrinterOptions): Promise<void>;
-    printPic(imagePath: string, options?: ImageOptions): Promise<void>;
-  }
-
-  export class BLEPrinter implements IBLEPrinter {
-    static deviceList(): Promise<PrinterDevice[]>;
-    connectPrinter(payload: ConnectPayload): Promise<void>;
-    closeConn(): Promise<void>;
-    printText(text: string, options?: PrinterOptions): Promise<void>;
-    printPic(imagePath: string, options?: ImageOptions): Promise<void>;
-  }
+declare module "react-native" {
+    interface NativeModulesStatic {
+        ThermalPrinterModule: ThermalPrinterModuleType;
+    }
 }

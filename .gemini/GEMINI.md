@@ -1,8 +1,6 @@
----
-inclusion: always
----
+This document defines the **global development and testing rules** as well as **React Native–specific code styles, architecture, and patterns**. It ensures consistency, maintainability, and clarity across all contributors.
 
-# General Development Rules
+---
 
 ## 1. General Development Rules
 

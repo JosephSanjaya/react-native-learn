@@ -99,6 +99,31 @@ This document defines the **global development and testing rules** as well as **
 
 ---
 
+#### Structure Rules
+### Preferred Project Structure
+
+The following folder structure enforces **feature-first organization** and **clean architecture layers**:
+
+1. **Core vs. Features**
+    * `core/` contains **shared services, repositories, DI, and infrastructure**.
+    * `features/` contains **isolated vertical slices** (data, domain, services, presentation).
+
+2. **Feature Layering**
+    * **data/** → repositories, DTOs, persistence
+    * **domain/** → pure business logic (use cases)
+    * **services/** → orchestration + external integration
+    * **presentation/** → ViewModels, hooks, React components
+
+3. **Naming Conventions**
+    * Classes: `*Service`, `*Repository`, `*UseCase`, `*ViewModel`
+    * Interfaces: `I*` (e.g., `INotificationService`)
+    * Screens: `FeatureScreen.tsx`
+    * Hooks: `useFeatureViewModel.ts`
+
+4. **Scalability**
+    * Every new feature **must follow the same layered structure**.
+    * Cross-feature imports are forbidden; only `core/` is shared.
+
 ## 3. State Management (MVI)
 
 ### MVI Pattern

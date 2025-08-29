@@ -1,5 +1,5 @@
-import { BackgroundSyncService } from '../../src/services/BackgroundSync';
-import { IPostRepository } from '../../src/data/repositories/interfaces/IPostRepository';
+import { BackgroundSyncService } from '../../src/core/services/BackgroundSync.ts';
+import { IPostRepository } from '../../src/core/data/repositories/interfaces/IPostRepository.ts';
 import BackgroundFetch from 'react-native-background-fetch';
 
 // STUB - Provides predetermined responses

@@ -26,124 +26,158 @@ Tujuan dari proyek ini adalah untuk menunjukkan cara melakukan sinkronisasi data
 
 ## 2. Struktur Proyek
 
-Struktur proyek telah direfactor menggunakan feature-based architecture dengan clean architecture, dependency injection, dan service orchestration:
+Struktur proyek telah direfactor menggunakan feature-first architecture dengan clean architecture, dependency injection, dan service orchestration:
 
 ```
 .
 ├── android
 ├── ios
 ├── src
-│   ├── data
-│   │   ├── db
-│   │   │   ├── index.ts
-│   │   │   ├── Post.ts
-│   │   │   └── schema.ts
-│   │   └── repositories
-│   │       ├── interfaces
-│   │       │   ├── IPostRepository.ts
-│   │       │   ├── IFCMTokenRepository.ts
-│   │       │   ├── IBluetoothDeviceRepository.ts
-│   │       │   └── IBarcodeRepository.ts
-│   │       ├── PostRepository.ts
-│   │       ├── FCMTokenRepository.ts
-│   │       ├── BluetoothDeviceRepository.ts
-│   │       └── BarcodeRepository.ts
-│   ├── di (Dependency Injection)
-│   │   ├── context
-│   │   │   └── ServiceContext.tsx
-│   │   └── hooks
-│   │       ├── useBackgroundSync.ts
-│   │       ├── usePostRepository.ts
-│   │       ├── usePermission.ts
-│   │       ├── useNotification.ts
-│   │       ├── useFCM.ts
-│   │       ├── useFCMToken.ts
-│   │       ├── useAppInitialization.ts
-│   │       ├── useConsoleLogger.ts
-│   │       └── useAppViewModel.ts (deprecated - redirects to HomeViewModel)
-│   ├── presentation
-│   │   ├── components
-│   │   └── screen
-│   │       ├── home
-│   │       │   ├── HomeScreen.tsx
-│   │       │   ├── HomeViewModel.ts
-│   │       │   └── useHomeViewModel.ts
-│   │       ├── bluetooth
-│   │       │   ├── BluetoothScreen.tsx
-│   │       │   ├── BluetoothViewModel.ts
-│   │       │   └── useBluetoothViewModel.ts
-│   │       └── camera
-│   │           ├── CameraScreen.tsx
-│   │           ├── CameraViewModel.ts
-│   │           └── useCameraViewModel.ts
-│   ├── domain
-│   │   └── usecases
-│   │       ├── BluetoothUseCase.ts
-│   │       └── CameraUseCase.ts
-│   ├── types
-│   │   └── react-native-thermal-printer.d.ts
-│   └── services
-│       ├── interfaces
-│       │   ├── IBackgroundSyncService.ts
-│       │   ├── IPermissionService.ts
-│       │   ├── INotificationService.ts
-│       │   ├── IFCMService.ts
-│       │   ├── IBluetoothService.ts
-│       │   └── ICameraService.ts
-│       ├── AppInitializer.ts
-│       ├── FirebaseInitializer.ts
-│       ├── FCMMessageHandler.ts
-│       ├── NotificationManager.ts
-│       ├── BackgroundSync.ts
-│       ├── BackgroundSyncFactory.ts
-│       ├── PermissionService.ts
-│       ├── NotificationService.ts
-│       ├── FCMService.ts
-│       ├── BluetoothService.ts
-│       └── CameraService.ts
+│   ├── core (Shared Core Services & Infrastructure)
+│   │   ├── data
+│   │   │   ├── db
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── Post.ts
+│   │   │   │   └── schema.ts
+│   │   │   └── repositories
+│   │   │       ├── interfaces
+│   │   │       │   ├── IPostRepository.ts
+│   │   │       │   └── IFCMTokenRepository.ts
+│   │   │       ├── PostRepository.ts
+│   │   │       └── FCMTokenRepository.ts
+│   │   ├── di (Dependency Injection)
+│   │   │   ├── context
+│   │   │   │   └── ServiceContext.tsx
+│   │   │   └── hooks
+│   │   │       ├── useBackgroundSync.ts
+│   │   │       ├── usePostRepository.ts
+│   │   │       ├── usePermission.ts
+│   │   │       ├── useNotification.ts
+│   │   │       ├── useFCM.ts
+│   │   │       ├── useFCMToken.ts
+│   │   │       ├── useAppInitialization.ts
+│   │   │       ├── useConsoleLogger.ts
+│   │   │       └── useAppViewModel.ts (deprecated - redirects to HomeViewModel)
+│   │   └── services
+│   │       ├── AppInitializer.ts
+│   │       ├── FirebaseInitializer.ts
+│   │       ├── FCMMessageHandler.ts
+│   │       ├── NotificationManager.ts
+│   │       ├── BackgroundSync.ts
+│   │       ├── PermissionService.ts
+│   │       ├── NotificationService.ts
+│   │       ├── FCMService.ts
+│   │       ├── IBackgroundSyncService.ts
+│   │       ├── IPermissionService.ts
+│   │       ├── INotificationService.ts
+│   │       └── IFCMService.ts
+│   └── features (Feature-First Organization)
+│       ├── home
+│       │   └── presentation
+│       │       ├── HomeScreen.tsx
+│       │       ├── HomeViewModel.ts
+│       │       └── useHomeViewModel.ts
+│       ├── bluetooth
+│       │   ├── data
+│       │   │   ├── BluetoothDeviceRepository.ts
+│       │   │   └── IBluetoothDeviceRepository.ts
+│       │   ├── di
+│       │   │   └── useBluetoothService.ts
+│       │   ├── domain
+│       │   │   └── BluetoothUseCase.ts
+│       │   ├── presentation
+│       │   │   ├── BluetoothScreen.tsx
+│       │   │   ├── BluetoothViewModel.ts
+│       │   │   └── useBluetoothViewModel.ts
+│       │   ├── services
+│       │   │   ├── BluetoothService.ts
+│       │   │   └── IBluetoothService.ts
+│       │   └── util
+│       │       └── types
+│       │           └── react-native-thermal-printer.d.ts
+│       └── camera
+│           ├── data
+│           │   ├── BarcodeRepository.ts
+│           │   └── IBarcodeRepository.ts
+│           ├── di
+│           │   └── useCameraUseCase.ts
+│           ├── domain
+│           │   └── CameraUseCase.ts
+│           ├── presentation
+│           │   ├── CameraScreen.tsx
+│           │   ├── CameraViewModel.ts
+│           │   └── useCameraViewModel.ts
+│           └── services
+│               ├── CameraService.ts
+│               └── ICameraService.ts
 ├── App.tsx (navigation dan routing)
 ├── index.js
 └── ...
 ```
 
-### Arsitektur Feature-Based
+### Arsitektur Feature-First
 
 *   **`android` & `ios`:** Folder proyek asli untuk Android dan iOS.
-*   **`src`:** Berisi kode sumber aplikasi dengan arsitektur yang terstruktur.
-    *   **`data`:** Layer data dengan database dan repositories
-        *   **`db`:** Penyiapan WatermelonDB, skema, model, dan instance basis data
-        *   **`repositories`:** Layer abstraksi untuk operasi database dan penyimpanan lokal
-    *   **`di` (Dependency Injection):** Dependency injection dan service access
-        *   **`context`:** React Context untuk dependency injection dan service orchestration
-        *   **`hooks`:** Custom React hooks untuk mengakses services dan application lifecycle
-    *   **`presentation`:** UI layer dengan feature-based organization
-        *   **`components`:** Reusable UI components
-        *   **`screen`:** Feature-based screens dengan own ViewModel dan hooks
-            *   **`home`:** Home screen dengan HomeViewModel dan useHomeViewModel
-            *   **`bluetooth`:** Bluetooth printer feature dengan device scanning dan printing capabilities
-            *   **`camera`:** Camera barcode scanning feature dengan real-time detection
-    *   **`services`:** Business logic layer dengan service orchestrators dan specialized handlers
+*   **`src`:** Berisi kode sumber aplikasi dengan arsitektur feature-first yang terstruktur.
+    *   **`core`:** Shared infrastructure dan core services yang digunakan across features
+        *   **`data`:** Core data layer dengan database dan shared repositories
+            *   **`db`:** Penyiapan WatermelonDB, skema, model, dan instance basis data
+            *   **`repositories`:** Shared repositories untuk core entities (Post, FCMToken)
+        *   **`di` (Dependency Injection):** Dependency injection dan service access
+            *   **`context`:** React Context untuk dependency injection dan service orchestration
+            *   **`hooks`:** Custom React hooks untuk mengakses core services dan application lifecycle
+        *   **`services`:** Core business logic services (FCM, Notifications, Background Sync, Permissions)
+    *   **`features`:** Feature-first organization dengan complete isolation per feature
+        *   **`home`:** Home screen feature dengan presentation layer
+            *   **`presentation`:** HomeScreen, HomeViewModel, dan useHomeViewModel
+        *   **`bluetooth`:** Complete Bluetooth printer feature dengan full stack
+            *   **`data`:** BluetoothDeviceRepository dan interfaces
+            *   **`di`:** Feature-specific dependency injection hooks
+            *   **`domain`:** BluetoothUseCase untuk business logic
+            *   **`presentation`:** BluetoothScreen, BluetoothViewModel, dan hooks
+            *   **`services`:** BluetoothService dan interfaces
+            *   **`util`:** Feature-specific utilities dan type definitions
+        *   **`camera`:** Complete Camera barcode scanning feature dengan full stack
+            *   **`data`:** BarcodeRepository dan interfaces
+            *   **`di`:** Feature-specific dependency injection hooks
+            *   **`domain`:** CameraUseCase untuk business logic
+            *   **`presentation`:** CameraScreen, CameraViewModel, dan hooks
+            *   **`services`:** CameraService dan interfaces
 *   **`App.tsx`:** Entry point dengan simple navigation system antara HomeScreen, BluetoothScreen, dan CameraScreen
 *   **`index.js`:** Entry point aplikasi dengan Firebase module initialization
 
-### Keuntungan Feature-Based Architecture
+### Keuntungan Feature-First Architecture
+
+**Complete Feature Isolation:**
+- Setiap feature memiliki complete stack sendiri: data, domain, services, presentation
+- Feature dapat dikembangkan secara independent tanpa affecting other features
+- Clear boundaries antara features dengan minimal cross-dependencies
+- Self-contained features dengan own repositories, use cases, dan services
 
 **Scalability:**
-- Setiap feature memiliki folder sendiri dengan ViewModel, hooks, dan components
-- Mudah menambah screen baru tanpa mengubah existing code
-- Clear separation antara features
+- Easy untuk menambah feature baru dengan copy pattern dari existing features
+- Feature teams dapat bekerja parallel tanpa conflicts
+- Horizontal scaling dengan feature-specific teams
+- Vertical scaling dengan complete feature stacks
 
 **Maintainability:**
-- Feature-specific logic terisolasi dalam folder masing-masing
-- Dependency injection terpusat di `di` folder
-- Data layer terpisah dari presentation layer
+- Feature-specific logic completely isolated dalam folder masing-masing
+- Core services terpusat di `core` folder untuk shared functionality
+- Data layer terpisah antara core (shared) dan feature-specific
+- Clear separation of concerns dengan clean architecture per feature
+
+**Developer Experience:**
+- Feature developers hanya perlu fokus pada satu folder
+- Easy onboarding untuk new developers dengan clear feature boundaries
+- Consistent patterns across all features
+- Self-documenting structure dengan clear folder organization
 
 **Navigation Implementation:**
 - Simple state-based navigation system sudah terimplementasi
-- Each screen self-contained dengan own state management
+- Each feature self-contained dengan own state management
 - Easy untuk upgrade ke React Navigation jika diperlukan
-- Bluetooth printer feature sudah fully integrated
-- Camera barcode scanning feature sudah fully integrated
+- Bluetooth printer feature sudah fully integrated dengan complete stack
+- Camera barcode scanning feature sudah fully integrated dengan complete stack
 
 ## 3. Basis Data Lokal dengan WatermelonDB
 
@@ -445,7 +479,7 @@ Aplikasi telah diintegrasikan dengan fitur Bluetooth printer menggunakan `react-
 
 ### 6.1. Komponen Bluetooth
 
-#### Bluetooth Service Interface
+#### Bluetooth Service Interface (`src/features/bluetooth/services/IBluetoothService.ts`)
 
 Interface untuk mengelola koneksi dan printing ke thermal printer:
 
@@ -466,7 +500,7 @@ export interface IBluetoothService {
 }
 ```
 
-#### Bluetooth Device Repository
+#### Bluetooth Device Repository (`src/features/bluetooth/data/IBluetoothDeviceRepository.ts`)
 
 Repository untuk mengelola data perangkat Bluetooth yang tersimpan:
 
@@ -480,7 +514,7 @@ export interface IBluetoothDeviceRepository {
 }
 ```
 
-#### Bluetooth Use Case
+#### Bluetooth Use Case (`src/features/bluetooth/domain/BluetoothUseCase.ts`)
 
 Use case layer untuk business logic Bluetooth operations:
 
@@ -511,7 +545,7 @@ export class BluetoothUseCase {
 }
 ```
 
-### 6.2. Bluetooth Service Implementation
+### 6.2. Bluetooth Service Implementation (`src/features/bluetooth/services/BluetoothService.ts`)
 
 **Mock-Friendly Implementation:**
 ```typescript
@@ -606,9 +640,9 @@ export class BluetoothService implements IBluetoothService {
 }
 ```
 
-### 6.3. Bluetooth Screen Implementation
+### 6.3. Bluetooth Screen Implementation (`src/features/bluetooth/presentation/`)
 
-**BluetoothViewModel dengan MVI Pattern:**
+**BluetoothViewModel dengan MVI Pattern (`BluetoothViewModel.ts`):**
 ```typescript
 export class BluetoothViewModel {
   constructor(
@@ -643,7 +677,7 @@ export class BluetoothViewModel {
 }
 ```
 
-**BluetoothScreen dengan Enhanced UI:**
+**BluetoothScreen dengan Enhanced UI (`BluetoothScreen.tsx`):**
 ```typescript
 export const BluetoothScreen = ({ onNavigateBack }: BluetoothScreenProps) => {
   const { state, actions } = useBluetoothViewModel();
@@ -788,7 +822,7 @@ const App = () => {
 
 ### 6.5. Type Definitions
 
-**Custom Type Definitions untuk react-native-thermal-printer:**
+**Custom Type Definitions untuk react-native-thermal-printer (`src/features/bluetooth/util/types/react-native-thermal-printer.d.ts`):**
 ```typescript
 declare module 'react-native-thermal-printer' {
   export interface PrinterDevice {
@@ -847,7 +881,7 @@ Aplikasi telah diintegrasikan dengan fitur camera barcode scanning menggunakan `
 
 ### 7.1. Komponen Camera
 
-#### Camera Service Interface
+#### Camera Service Interface (`src/features/camera/services/ICameraService.ts`)
 
 Interface untuk mengelola camera permissions dan barcode scanning:
 
@@ -862,7 +896,7 @@ export interface ICameraService {
 }
 ```
 
-#### Barcode Repository
+#### Barcode Repository (`src/features/camera/data/IBarcodeRepository.ts`)
 
 Repository untuk mengelola data barcode yang terscan:
 
@@ -875,7 +909,7 @@ export interface IBarcodeRepository {
 }
 ```
 
-#### Camera Use Case
+#### Camera Use Case (`src/features/camera/domain/CameraUseCase.ts`)
 
 Use case layer untuk business logic camera operations:
 
@@ -917,7 +951,7 @@ export class CameraUseCase {
 }
 ```
 
-### 7.2. Camera Service Implementation
+### 7.2. Camera Service Implementation (`src/features/camera/services/CameraService.ts`)
 
 **Production-Ready Implementation:**
 ```typescript
@@ -956,9 +990,9 @@ export class CameraService implements ICameraService {
 }
 ```
 
-### 7.3. Camera Screen Implementation
+### 7.3. Camera Screen Implementation (`src/features/camera/presentation/`)
 
-**CameraViewModel dengan MVI Pattern:**
+**CameraViewModel dengan MVI Pattern (`CameraViewModel.ts`):**
 ```typescript
 export class CameraViewModel {
   constructor(
@@ -1008,7 +1042,7 @@ export class CameraViewModel {
 }
 ```
 
-**CameraScreen dengan Enhanced UI:**
+**CameraScreen dengan Enhanced UI (`CameraScreen.tsx`):**
 ```typescript
 export const CameraScreen = ({ onNavigateBack }: CameraScreenProps) => {
   const { state, actions } = useCameraViewModel();
@@ -1467,16 +1501,31 @@ export class NotificationManager {
 }
 ```
 
-#### ServiceContext dengan Service Orchestration (`src/di/context/ServiceContext.tsx`)
+#### ServiceContext dengan Service Orchestration (`src/core/di/context/ServiceContext.tsx`)
 
 ```typescript
 export const ServiceProvider: React.FC<ServiceProviderProps> = ({ children }) => {
+  // Core repositories
   const postRepository = new PostRepository();
   const fcmTokenRepository = new FCMTokenRepository();
+  
+  // Feature-specific repositories
+  const bluetoothDeviceRepository = new BluetoothDeviceRepository();
+  const barcodeRepository = new BarcodeRepository();
+  
+  // Core services
   const backgroundSyncService = new BackgroundSyncService(postRepository);
   const permissionService = new PermissionService();
   const notificationService = new NotificationService();
   const fcmService = new FCMService(fcmTokenRepository);
+  
+  // Feature-specific services
+  const bluetoothService = new BluetoothService(bluetoothDeviceRepository);
+  const cameraService = new CameraService();
+  
+  // Use cases
+  const bluetoothUseCase = new BluetoothUseCase(bluetoothService, bluetoothDeviceRepository);
+  const cameraUseCase = new CameraUseCase(cameraService, barcodeRepository);
   
   // Service Orchestrators
   const appInitializer = new AppInitializer(fcmService, permissionService, backgroundSyncService);
@@ -1484,12 +1533,23 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({ children }) =>
   const notificationManager = new NotificationManager(notificationService, permissionService);
 
   const services: ServiceContextType = {
+    // Core
     postRepository,
     fcmTokenRepository,
     backgroundSyncService,
     permissionService,
     notificationService,
     fcmService,
+    
+    // Features
+    bluetoothDeviceRepository,
+    barcodeRepository,
+    bluetoothService,
+    cameraService,
+    bluetoothUseCase,
+    cameraUseCase,
+    
+    // Orchestrators
     appInitializer,
     fcmMessageHandler,
     notificationManager,
@@ -1590,7 +1650,7 @@ export class BackgroundSyncService implements IBackgroundSyncService {
 
 Custom hooks untuk mengelola application lifecycle dan initialization:
 
-#### useAppInitialization Hook (`src/di/hooks/useAppInitialization.ts`)
+#### useAppInitialization Hook (`src/core/di/hooks/useAppInitialization.ts`)
 
 Hook yang mengelola initialization process dan application state:
 
@@ -1650,7 +1710,7 @@ export const useAppInitialization = () => {
 };
 ```
 
-#### useConsoleLogger Hook (`src/di/hooks/useConsoleLogger.ts`)
+#### useConsoleLogger Hook (`src/core/di/hooks/useConsoleLogger.ts`)
 
 Hook untuk menangkap dan menampilkan console logs dalam UI:
 

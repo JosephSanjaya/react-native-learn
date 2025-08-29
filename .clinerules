@@ -205,6 +205,30 @@ The following folder structure enforces **feature-first organization** and **cle
 
 ---
 
+
+## 6. UI/UX Guidelines
+
+### Material Design
+
+* **Always follow Material Design principles** for all UI components.
+* Use the official **React Native Material Design libraries** `react-native-material/core`.
+* All screens must have consistent:
+    * **Typography** (Material styles for headings, body, captions)
+    * **Color scheme** (primary, secondary, surface, background, error)
+    * **Elevation and shadows** (cards, dialogs, floating buttons)
+    * **Shape system** (rounded corners, consistent spacing)
+* Avoid using raw, unstyled `View`, `Text`, or `Button` unless wrapped in Material components.
+
+### Navigation & Interaction
+
+* Navigation should follow **Material Navigation guidelines**:
+    * Bottom navigation for 3–5 primary destinations.
+    * Drawer navigation only for secondary destinations.
+* User actions must be discoverable:
+    * **FAB (Floating Action Button)** for primary contextual actions.
+    * **Snackbars** for transient feedback instead of alerts.
+* All interactions must provide **visual feedback** (ripple, elevation change).
+
 ✅ **Summary**
 
 * Global rules enforce **Windows PowerShell support**, **gradle from environment**, and **self-explanatory code**.
